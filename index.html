@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Delta WMS — Warehouse Management System</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+  /* ══ Delta Medical Laboratories — Brand Tokens ══ */
+  :root {
+    --navy:    #1B3A6B;   /* Delta deep navy */
+    --navy2:   #122a52;   /* darker navy for hover/depth */
+    --green:   #4A9B3A;   /* Delta triangle green */
+    --green2:  #3a7d2c;   /* deeper green */
+    --green-lt:#e8f5e4;   /* light green tint */
+    --navy-lt: #e8edf6;   /* light navy tint */
+    --bg:      #f0f4f8;   /* page background — cool off-white */
+    --surface: #ffffff;   /* card / panel */
+    --surface2:#f7f9fc;   /* row hover */
+    --border:  #d0d9e8;   /* subtle border */
+    --text:    #1a2a42;   /* main text — near-navy */
+    --muted:   #6b7d99;   /* secondary text */
+    --red:     #d93025;
+    --orange:  #e67e22;
+    --yellow:  #d4a017;
+    --accent:  var(--navy);
+    --accent2: var(--green);
+    --radius:  10px;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter','Segoe UI',Arial,sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: var(--navy);
+    border-bottom: 3px solid var(--green);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 16px;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(27,58,107,.25);
+  }
+  .header-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo-mark {
+    width: 38px; height: 38px;
+    background: var(--green);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+  .logo-text .l1 { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+  .logo-text .l2 { font-size: 10px; font-weight: 500; color: var(--green); letter-spacing: 1.2px; text-transform: uppercase; }
+  header span.sub { color: rgba(255,255,255,.45); font-size: 12px; }
+  .header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); }
+  .spacer { flex: 1; }
+  main { padding: 22px 28px; max-width: 1700px; margin: 0 auto; }
+
+  /* ── Month tabs ── */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .tab-btn { padding: 7px 20px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+  .tab-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(27,58,107,.25); }
+  .tab-btn:hover:not(.active) { border-color: var(--navy); color: var(--navy); background: var(--navy-lt); }
+  .btn-add-month { padding: 7px 14px; border-radius: 20px; border: 1.5px dashed var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+  .btn-add-month:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── KPI Cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 4px rgba(27,58,107,.07); transition: box-shadow .15s; }
+  .kpi-card:hover { box-shadow: 0 4px 14px rgba(27,58,107,.12); }
+  .kpi-card .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; font-weight: 600; }
+  .kpi-card .value { font-size: 26px; font-weight: 800; }
+  .kpi-card .sub-val { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .c-blue   { color: var(--navy); }
+  .c-green  { color: var(--green); }
+  .c-yellow { color: var(--yellow); }
+  .c-red    { color: var(--red); }
+  .c-orange { color: var(--orange); }
+  .c-purple { color: #6b4fcc; }
+
+  /* ── Toolbar ── */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .toolbar input[type=text] { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+  .toolbar input[type=text]:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(27,58,107,.1); }
+  .toolbar select { padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+  .toolbar select:focus { outline: none; border-color: var(--navy); }
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+  .btn:hover { filter: brightness(.92); }
+  .btn-primary { background: var(--navy); color: #fff; box-shadow: 0 2px 6px rgba(27,58,107,.25); }
+  .btn-success { background: var(--green); color: #fff; box-shadow: 0 2px 6px rgba(74,155,58,.25); }
+  .btn-danger  { background: var(--red); color: #fff; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--navy); color: var(--navy); background: var(--navy-lt); filter: none; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: 0 1px 6px rgba(27,58,107,.08); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--navy); }
+  thead th { padding: 11px 13px; text-align: left; color: rgba(255,255,255,.75); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; border-bottom: 2px solid var(--green); white-space: nowrap; position: sticky; top: 0; cursor: pointer; user-select: none; font-weight: 600; }
+  thead th:hover { color: #fff; }
+  thead th .sort-icon { margin-left: 4px; opacity: .45; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--green); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--navy-lt); }
+  tbody td { padding: 9px 13px; vertical-align: middle; white-space: nowrap; color: var(--text); }
+  .td-wrap { white-space: normal; max-width: 220px; }
+
+  /* ── Status badge ── */
+  .badge { display: inline-block; padding: 3px 11px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-completed  { background: var(--green-lt); color: var(--green2); border: 1px solid #b8e0b0; }
+  .badge-inprogress { background: var(--navy-lt);  color: var(--navy);   border: 1px solid #b8c8e8; }
+  .badge-pending    { background: #fdf3e3;          color: #a05a00;       border: 1px solid #f0d09a; }
+
+  /* ── Stage inline buttons ── */
+  .stages { display: flex; gap: 5px; align-items: center; }
+  .stage-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--surface2); color: var(--muted);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: all .15s; white-space: nowrap; user-select: none;
+  }
+  .stage-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink:0; transition: background .15s; }
+  .stage-btn.done { background: var(--green-lt); border-color: var(--green); color: var(--green2); }
+  .stage-btn.done .dot { background: var(--green); }
+  .stage-btn:hover:not(.done) { border-color: var(--navy); color: var(--navy); background: var(--navy-lt); }
+  .stage-btn:hover:not(.done) .dot { background: var(--navy); }
+  /* legacy dot (kept for any fallback) */
+  .stage-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface2); }
+  .stage-dot.done { background: var(--green); border-color: var(--green2); }
+
+  /* ── Shipment type ── */
+  .ship-urgent   { color: var(--red);    font-weight: 700; }
+  .ship-scheduled{ color: var(--yellow); font-weight: 600; }
+  .ship-normal   { color: var(--green);  font-weight: 600; }
+
+  /* ── Progress bar ── */
+  .prog-wrap { width: 70px; background: var(--border); border-radius: 4px; height: 6px; }
+  .prog-bar  { height: 6px; border-radius: 4px; background: linear-gradient(90deg, var(--green) 0%, #7dcf6a 100%); }
+
+  /* ── Modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,45,.55); backdrop-filter: blur(3px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(10,20,45,.2); }
+  .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+  .modal h2::before { content:''; display:inline-block; width:4px; height:20px; background: var(--green); border-radius:2px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .form-group input, .form-group select, .form-group textarea { padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #fafbfd; color: var(--text); font-size: 13px; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(27,58,107,.08); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+
+  /* ── Stage checkboxes in modal ── */
+  .stage-checks { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stage-checks label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); cursor: pointer; font-weight: 500; }
+  .stage-checks input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--green); }
+
+  /* ── POD ── */
+  .pod-link { color: var(--navy); text-decoration: underline; cursor: pointer; font-size: 12px; }
+  .pod-none { color: var(--muted); font-size: 11px; }
+  .pod-thumb { width: 48px; height: 36px; object-fit: cover; border-radius: 5px; cursor: pointer; border: 1.5px solid var(--border); transition: transform .15s, border-color .15s; }
+  .pod-thumb:hover { transform: scale(1.08); border-color: var(--green); }
+  .pod-upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all .15s; margin-top: 6px; background: #fafbfd; }
+  .pod-upload-zone:hover, .pod-upload-zone.dragover { border-color: var(--green); background: var(--green-lt); }
+  .pod-upload-zone p { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .pod-preview-wrap { position: relative; display: inline-block; margin-top: 8px; }
+  .pod-preview-img { max-width: 100%; max-height: 180px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+  .pod-remove-btn { position: absolute; top: -8px; right: -8px; background: var(--red); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Lightbox ── */
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 10px; box-shadow: 0 0 60px rgba(0,0,0,.8); }
+  .lightbox-close { position: fixed; top: 20px; right: 28px; color: #fff; font-size: 32px; cursor: pointer; line-height: 1; }
+
+  /* ── View toggle ── */
+  .view-toggle { display: flex; gap: 4px; background: var(--navy-lt); border: 1.5px solid var(--border); border-radius: 9px; padding: 4px; }
+  .view-btn { padding: 6px 16px; border-radius: 6px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+  .view-btn.active { background: var(--navy); color: #fff; box-shadow: 0 1px 4px rgba(27,58,107,.2); }
+  .view-btn:not(.active):hover { color: var(--navy); }
+
+  /* ── Dashboard ── */
+  #dashboardView { display: none; }
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 18px; margin-top: 4px; }
+  .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 5px rgba(27,58,107,.07); }
+  .dash-card h3 { font-size: 11.5px; color: var(--navy); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 16px; font-weight: 700; padding-bottom: 10px; border-bottom: 2px solid var(--green-lt); }
+  .dash-card.wide { grid-column: 1 / -1; }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap.tall { height: 300px; }
+
+  /* ── Stat row ── */
+  .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; border-left: 4px solid; box-shadow: 0 1px 4px rgba(27,58,107,.07); }
+  .stat-box .s-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .stat-box .s-val { font-size: 32px; font-weight: 800; margin: 5px 0 3px; }
+  .stat-box .s-sub { font-size: 11px; color: var(--muted); }
+  .stat-box.blue   { border-color: var(--navy);   } .stat-box.blue   .s-val { color: var(--navy); }
+  .stat-box.green  { border-color: var(--green);  } .stat-box.green  .s-val { color: var(--green); }
+  .stat-box.red    { border-color: var(--red);    } .stat-box.red    .s-val { color: var(--red); }
+  .stat-box.yellow { border-color: var(--yellow); } .stat-box.yellow .s-val { color: var(--yellow); }
+
+  /* ── Activity feed ── */
+  .feed { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; }
+  .feed li { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .feed-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .feed-time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+  /* ── Responsive ── */
+  @media(max-width:700px) {
+    main { padding: 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <div class="logo-mark"></div>
+    <div class="logo-text">
+      <span class="l1">Delta WMS</span>
+      <span class="l2">Warehouse Management System</span>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <span class="sub" style="color:rgba(255,255,255,.6);font-size:13px;font-weight:500;">Delta Medical Laboratories</span>
+  <div class="spacer"></div>
+  <button class="btn btn-outline" onclick="importExcel()">⬆ Import Excel</button>
+  <button class="btn btn-success" onclick="exportExcel()">⬇ Export Excel</button>
+  <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
+</header>
+
+<main>
+  <!-- Month Tabs -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search order, branch, city…" oninput="renderTable()"/>
+    <select id="filterStatus" onchange="renderTable()">
+      <option value="">All Statuses</option>
+      <option>Pending</option>
+      <option>In Progress</option>
+      <option>Completed</option>
+    </select>
+    <select id="filterShipType" onchange="renderTable()">
+      <option value="">All Types</option>
+      <option>URGENT</option>
+      <option>SCHEDULED</option>
+      <option>NORMAL</option>
+    </select>
+    <select id="filterHub" onchange="renderTable()">
+      <option value="">All Hubs</option>
+    </select>
+    <select id="filterCity" onchange="renderTable()">
+      <option value="">All Cities</option>
+    </select>
+    <select id="filterLogistics" onchange="renderTable()">
+      <option value="">All Logistics</option>
+      <option>MTC</option>
+      <option>UBER</option>
+      <option>SAMSA</option>
+      <option>Others</option>
+    </select>
+    <select id="sortBy" onchange="renderTable()">
+      <option value="date-desc">Sort: Date ↓</option>
+      <option value="date-asc">Sort: Date ↑</option>
+      <option value="city-asc">Sort: City A→Z</option>
+      <option value="city-desc">Sort: City Z→A</option>
+      <option value="shipDate-asc">Sort: Shipment Date ↑</option>
+      <option value="shipDate-desc">Sort: Shipment Date ↓</option>
+      <option value="progress-desc">Sort: Progress ↓</option>
+    </select>
+    <button class="btn btn-primary" onclick="openAddModal()">+ New Order</button>
+    <div class="view-toggle" style="margin-left:auto">
+      <button class="view-btn active" id="btnTableView" onclick="setView('table')">☰ Table</button>
+      <button class="view-btn" id="btnDashView" onclick="setView('dashboard')">📊 Dashboard</button>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div id="dashboardView">
+    <div class="stat-row" id="dashStatRow"></div>
+    <div class="dash-grid">
+      <div class="dash-card"><h3>Order Status Distribution</h3><div class="chart-wrap"><canvas id="chartStatus"></canvas></div></div>
+      <div class="dash-card"><h3>Shipment Type Breakdown</h3><div class="chart-wrap"><canvas id="chartShipType"></canvas></div></div>
+      <div class="dash-card"><h3>Orders by Hub / Warehouse</h3><div class="chart-wrap tall"><canvas id="chartHub"></canvas></div></div>
+      <div class="dash-card"><h3>Orders by City</h3><div class="chart-wrap tall"><canvas id="chartCity"></canvas></div></div>
+      <div class="dash-card"><h3>Logistics Partner Split</h3><div class="chart-wrap"><canvas id="chartLogistics"></canvas></div></div>
+      <div class="dash-card wide"><h3>Daily Orders Timeline</h3><div class="chart-wrap"><canvas id="chartTimeline"></canvas></div></div>
+      <div class="dash-card"><h3>On-Time vs Delayed</h3><div class="chart-wrap"><canvas id="chartOnTime"></canvas></div></div>
+      <div class="dash-card"><h3>Delay Reasons</h3><div class="chart-wrap"><canvas id="chartDelayReasons"></canvas></div></div>
+      <div class="dash-card"><h3>Recent Activity</h3><ul class="feed" id="activityFeed"></ul></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="cycleSortCol('order')">#<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('order')">Order No & Branch<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('hub')">Hub / Warehouse<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('city')">City<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('date')">Date<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('shipDate')">Shipment Date<span class="sort-icon">↕</span></th>
+          <th>Stages</th>
+          <th onclick="cycleSortCol('status')">Status<span class="sort-icon">↕</span></th>
+          <th onclick="cycleSortCol('progress')">Progress<span class="sort-icon">↕</span></th>
+          <th>Type</th>
+          <th>Logistics</th>
+          <th>On Time</th>
+          <th>POD</th>
+          <th>Delay Reason</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:8px;color:var(--muted);font-size:12px;" id="rowCount"></div>
+</main>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightboxImg" src="" alt="POD"/>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">New Order</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Order No & Branch</label>
+        <input type="text" id="f_order" placeholder="DLTA-000XXX LB001 Laban, Riyadh"/>
+      </div>
+      <div class="form-group">
+        <label>Hub / Warehouse</label>
+        <select id="f_hub">
+          <option value="">— Select Warehouse —</option>
+          <option value="WH-001">WH-001</option>
+          <option value="WH-002">WH-002</option>
+          <option value="WH-003">WH-003</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <select id="f_city">
+          <option value="">— Select City —</option>
+          <optgroup label="Riyadh Region">
+            <option>Riyadh</option>
+            <option>Al Kharj</option>
+            <option>Dawadmi</option>
+            <option>Majmaah</option>
+            <option>Zulfi</option>
+            <option>Shaqra</option>
+            <option>Afif</option>
+            <option>Al Quwayiyah</option>
+            <option>Rumah</option>
+            <option>Al Muzahmiyya</option>
+            <option>Diriyah</option>
+            <option>Al Ghat</option>
+            <option>Hawtah Bani Tamim</option>
+            <option>Layla</option>
+            <option>Wadi Al Dawasir</option>
+            <option>Al Sulayyil</option>
+          </optgroup>
+          <optgroup label="Makkah Region">
+            <option>Jeddah</option>
+            <option>Makkah</option>
+            <option>Taif</option>
+            <option>Rabigh</option>
+            <option>Yanbu</option>
+            <option>Al Qunfudhah</option>
+            <option>Lith</option>
+            <option>Adham</option>
+            <option>Khulais</option>
+            <option>Al Jumum</option>
+          </optgroup>
+          <optgroup label="Madinah Region">
+            <option>Madinah</option>
+            <option>Yanbu Al Bahr</option>
+            <option>Al Ula</option>
+            <option>Badr</option>
+            <option>Khaybar</option>
+            <option>Al Henakiyah</option>
+            <option>Mahd Al Dahab</option>
+          </optgroup>
+          <optgroup label="Eastern Province">
+            <option>Dammam</option>
+            <option>Al Khobar</option>
+            <option>Dhahran</option>
+            <option>Jubail</option>
+            <option>Al Ahsa (Hofuf)</option>
+            <option>Al Qatif</option>
+            <option>Ras Tanura</option>
+            <option>Safwa</option>
+            <option>Khafji</option>
+            <option>Haradh</option>
+            <option>Abqaiq</option>
+            <option>Al Mubarraz</option>
+            <option>Hafar Al Batin</option>
+          </optgroup>
+          <optgroup label="Asir Region">
+            <option>Abha</option>
+            <option>Khamis Mushait</option>
+            <option>Bisha</option>
+            <option>Sarat Abidah</option>
+            <option>Ahad Rufaidah</option>
+            <option>Mahayil Asir</option>
+            <option>Rijal Alma</option>
+            <option>Al Namas</option>
+            <option>Dhahran Al Janub</option>
+          </optgroup>
+          <optgroup label="Tabuk Region">
+            <option>Tabuk</option>
+            <option>Tayma</option>
+            <option>Duba</option>
+            <option>Al Wajh</option>
+            <option>Umluj</option>
+            <option>Haql</option>
+          </optgroup>
+          <optgroup label="Hail Region">
+            <option>Hail</option>
+            <option>Baqaa</option>
+            <option>Al Shinan</option>
+            <option>Al Ghazalah</option>
+          </optgroup>
+          <optgroup label="Qassim Region">
+            <option>Buraidah</option>
+            <option>Unayzah</option>
+            <option>Al Rass</option>
+            <option>Al Mithnab</option>
+            <option>Ar Riyadh Al Khabra</option>
+            <option>Uyun Al Jiwa</option>
+          </optgroup>
+          <optgroup label="Jizan Region">
+            <option>Jizan</option>
+            <option>Sabya</option>
+            <option>Abu Arish</option>
+            <option>Samtah</option>
+            <option>Farasan</option>
+            <option>Al Darb</option>
+            <option>Ahad Al Masarihah</option>
+          </optgroup>
+          <optgroup label="Najran Region">
+            <option>Najran</option>
+            <option>Sharorah</option>
+            <option>Habunah</option>
+            <option>Yadamah</option>
+          </optgroup>
+          <optgroup label="Al Bahah Region">
+            <option>Al Bahah</option>
+            <option>Baljurashi</option>
+            <option>Al Makhwah</option>
+            <option>Qilwah</option>
+          </optgroup>
+          <optgroup label="Northern Borders Region">
+            <option>Arar</option>
+            <option>Rafha</option>
+            <option>Turaif</option>
+            <option>Al Uwayqilah</option>
+          </optgroup>
+          <optgroup label="Jawf Region">
+            <option>Sakakah</option>
+            <option>Domat Al Jandal</option>
+            <option>Al Qurayat</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="f_date"/>
+      </div>
+      <div class="form-group">
+        <label>Shipment Date</label>
+        <input type="date" id="f_shipDate"/>
+      </div>
+      <div class="form-group">
+        <label>Shipment Type</label>
+        <select id="f_shipType">
+          <option>URGENT</option>
+          <option>SCHEDULED</option>
+          <option>NORMAL</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Logistics Co</label>
+        <select id="f_logistics">
+          <option>MTC</option>
+          <option>UBER</option>
+          <option>SAMSA</option>
+          <option>Others</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Stages</label>
+        <div class="stage-checks">
+          <label><input type="checkbox" id="f_pending"/> Pending</label>
+          <label><input type="checkbox" id="f_preparing"/> Preparing</label>
+          <label><input type="checkbox" id="f_ready"/> Ready</label>
+          <label><input type="checkbox" id="f_dispatched"/> Dispatched</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dispatched On Time</label>
+        <select id="f_onTime">
+          <option value="">—</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Dispatched Before Time</label>
+        <select id="f_beforeTime">
+          <option value="">—</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Delay Reason</label>
+        <input type="text" id="f_delayReason" placeholder="SUPPLY CHAIN, etc."/>
+      </div>
+      <div class="form-group">
+        <label>Error Type</label>
+        <input type="text" id="f_errorType"/>
+      </div>
+      <div class="form-group full">
+        <label>POD — Proof of Dispatched (Image or URL/Reference)</label>
+        <input type="text" id="f_pod" placeholder="https://… or POD-REF-001"/>
+        <div class="pod-upload-zone" id="podDropZone" onclick="document.getElementById('podImageInput').click()" ondragover="podDragOver(event)" ondragleave="podDragLeave(event)" ondrop="podDrop(event)">
+          <div style="font-size:28px">📷</div>
+          <p>Click or drag & drop an image<br>(JPG, PNG, WEBP)</p>
+        </div>
+        <input type="file" id="podImageInput" accept="image/*" style="display:none" onchange="podFileSelected(event)"/>
+        <div id="podPreviewWrap" style="display:none" class="pod-preview-wrap">
+          <img id="podPreviewImg" class="pod-preview-img" src=""/>
+          <button class="pod-remove-btn" onclick="removePodImage()" title="Remove image">✕</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea id="f_notes" placeholder="Any additional notes…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data store ──
+let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
+let activeMonth = null;
+let editingId = null;
+let sortCol = 'date';
+let sortDir = 'desc';
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── Helpers ──
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function fmtDate(d) { if(!d) return '—'; const dt = new Date(d); if(isNaN(dt)) return d; return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function toDateVal(d) { if(!d) return 0; return new Date(d).getTime() || 0; }
+function calcStatus(o) {
+  if(o.dispatched) return 'Completed';
+  if(o.ready || o.preparing) return 'In Progress';
+  if(o.pending) return 'In Progress';
+  return 'Pending';
+}
+function calcProgress(o) {
+  return ([o.pending,o.preparing,o.ready,o.dispatched].filter(Boolean).length) / 4;
+}
+function extractCity(order, city) {
+  if(city && city.trim()) return city.trim();
+  // Try to extract from order name
+  const m = order.match(/,\s*([^,()]+)$/);
+  if(m) return m[1].trim();
+  const m2 = order.match(/(Riyadh|Jeddah|Dammam|Abha|Khobar|Jazan|Mecca|Medina)/i);
+  if(m2) return m2[1];
+  return 'Unknown';
+}
+
+// ── Init ──
+function init() {
+  const saved = localStorage.getItem('wms_data');
+  if(saved) {
+    store = JSON.parse(saved);
+  } else {
+    // Seed with May 2026 demo data from the Excel
+    store['May 2026'] = seedMay();
+    store['Jun 2026'] = [];
+  }
+  const months = Object.keys(store);
+  activeMonth = months[0];
+  renderTabs();
+  renderAll();
+}
+
+function save() { localStorage.setItem('wms_data', JSON.stringify(store)); }
+
+// ── Tabs ──
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  el.innerHTML = Object.keys(store).map(m =>
+    `<button class="tab-btn ${m===activeMonth?'active':''}" onclick="switchMonth('${m}')">${m}</button>`
+  ).join('') +
+  `<button class="btn-add-month" onclick="addMonth()">+ Add Month</button>`;
+}
+
+function switchMonth(m) { activeMonth = m; renderTabs(); renderAll(); }
+
+function addMonth() {
+  const name = prompt('Month name (e.g. Jul 2026):');
+  if(!name || store[name]) return;
+  store[name] = [];
+  save();
+  activeMonth = name;
+  renderTabs();
+  renderAll();
+}
+
+// ── Orders ──
+function orders() { return store[activeMonth] || []; }
+
+function filteredSorted() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const fs = document.getElementById('filterStatus').value;
+  const ft = document.getElementById('filterShipType').value;
+  const fhub = document.getElementById('filterHub').value;
+  const fc = document.getElementById('filterCity').value;
+  const fl = document.getElementById('filterLogistics').value;
+  const sortSel = document.getElementById('sortBy').value;
+
+  let rows = orders().map(o => ({
+    ...o,
+    _status: calcStatus(o),
+    _progress: calcProgress(o),
+    _city: extractCity(o.order || '', o.city || '')
+  }));
+
+  if(search) rows = rows.filter(o =>
+    (o.order||'').toLowerCase().includes(search) ||
+    (o._city||'').toLowerCase().includes(search) ||
+    (o.hub||'').toLowerCase().includes(search) ||
+    (o.logistics||'').toLowerCase().includes(search) ||
+    (o.notes||'').toLowerCase().includes(search)
+  );
+  if(fs) rows = rows.filter(o => o._status === fs);
+  if(ft) rows = rows.filter(o => o.shipType === ft);
+  if(fhub) rows = rows.filter(o => (o.hub||'') === fhub);
+  if(fc) rows = rows.filter(o => o._city === fc);
+  if(fl) rows = rows.filter(o => o.logistics === fl);
+
+  // Sort
+  const [sc, sd] = sortSel.split('-');
+  rows.sort((a,b) => {
+    let va, vb;
+    if(sc==='date') { va=toDateVal(a.date); vb=toDateVal(b.date); }
+    else if(sc==='hub') { va=(a.hub||'').toLowerCase(); vb=(b.hub||'').toLowerCase(); }
+    else if(sc==='city') { va=(a._city||'').toLowerCase(); vb=(b._city||'').toLowerCase(); }
+    else if(sc==='shipDate') { va=toDateVal(a.shipDate); vb=toDateVal(b.shipDate); }
+    else if(sc==='progress') { va=a._progress; vb=b._progress; }
+    else { va=(a.order||''); vb=(b.order||''); }
+    if(va < vb) return sd==='asc'?-1:1;
+    if(va > vb) return sd==='asc'?1:-1;
+    return 0;
+  });
+
+  return rows;
+}
+
+// ── KPIs ──
+function renderKPIs() {
+  const all = orders().map(o=>({...o,_status:calcStatus(o),_progress:calcProgress(o)}));
+  const total = all.length;
+  const completed = all.filter(o=>o._status==='Completed').length;
+  const inProg = all.filter(o=>o._status==='In Progress').length;
+  const pending = all.filter(o=>o._status==='Pending').length;
+  const dispatched = all.filter(o=>o.dispatched).length;
+  const onTime = all.filter(o=>o.onTime===true||o.onTime==='true').length;
+  const beforeTime = all.filter(o=>o.beforeTime===true||o.beforeTime==='true').length;
+  const delayed = all.filter(o=>o.delayReason&&o.delayReason.trim()).length;
+  const withError = all.filter(o=>o.errorType&&o.errorType.trim()).length;
+  const avgProg = total ? (all.reduce((s,o)=>s+o._progress,0)/total*100).toFixed(0) : 0;
+  const onTimePct = dispatched ? ((onTime/dispatched)*100).toFixed(1) : '—';
+  const delayPct = dispatched ? ((delayed/dispatched)*100).toFixed(1) : '—';
+  const otif = dispatched ? (((onTime+beforeTime)/dispatched)*100).toFixed(1) : '—';
+  const urgent = all.filter(o=>o.shipType==='URGENT').length;
+  const scheduled = all.filter(o=>o.shipType==='SCHEDULED').length;
+  const normal = all.filter(o=>o.shipType==='NORMAL').length;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="label">Total Orders</div><div class="value c-blue">${total}</div></div>
+    <div class="kpi-card"><div class="label">Completed</div><div class="value c-green">${completed}</div><div class="sub-val">${total?(completed/total*100).toFixed(0):0}%</div></div>
+    <div class="kpi-card"><div class="label">In Progress</div><div class="value c-yellow">${inProg}</div></div>
+    <div class="kpi-card"><div class="label">Pending</div><div class="value c-orange">${pending}</div></div>
+    <div class="kpi-card"><div class="label">Avg Progress</div><div class="value c-blue">${avgProg}%</div></div>
+    <div class="kpi-card"><div class="label">On Time %</div><div class="value c-green">${onTimePct}${typeof onTimePct==='string'&&onTimePct!=='—'?'%':''}</div></div>
+    <div class="kpi-card"><div class="label">OTIF %</div><div class="value c-purple">${otif}${typeof otif==='string'&&otif!=='—'?'%':''}</div></div>
+    <div class="kpi-card"><div class="label">Delay %</div><div class="value c-red">${delayPct}${typeof delayPct==='string'&&delayPct!=='—'?'%':''}</div></div>
+    <div class="kpi-card"><div class="label">Urgent</div><div class="value c-red">${urgent}</div></div>
+    <div class="kpi-card"><div class="label">Scheduled</div><div class="value c-yellow">${scheduled}</div></div>
+    <div class="kpi-card"><div class="label">Normal</div><div class="value c-green">${normal}</div></div>
+    <div class="kpi-card"><div class="label">Errors</div><div class="value c-red">${withError}</div></div>
+  `;
+}
+
+// ── City filter dropdown ──
+function refreshCityFilter() {
+  const cities = [...new Set(orders().map(o=>extractCity(o.order||'',o.city||'')))].sort();
+  const sel = document.getElementById('filterCity');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">All Cities</option>` +
+    cities.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
+
+  const hubs = [...new Set(orders().map(o=>o.hub||'').filter(Boolean))].sort();
+  const hsel = document.getElementById('filterHub');
+  const hcur = hsel.value;
+  hsel.innerHTML = `<option value="">All Hubs</option>` +
+    hubs.map(h=>`<option ${h===hcur?'selected':''}>${h}</option>`).join('');
+}
+
+// ── Table ──
+function renderTable() {
+  refreshCityFilter();
+  const rows = filteredSorted();
+  document.getElementById('rowCount').textContent = `Showing ${rows.length} of ${orders().length} orders`;
+
+  const stages = ['pending','preparing','ready','dispatched'];
+  const stageLabels = ['Pending','Preparing','Ready','Dispatched'];
+
+  document.getElementById('tableBody').innerHTML = rows.map((o,i) => {
+    const status = o._status;
+    const prog = o._progress;
+    const badgeCls = status==='Completed'?'badge-completed':status==='In Progress'?'badge-inprogress':'badge-pending';
+    const shipCls = o.shipType==='URGENT'?'ship-urgent':o.shipType==='SCHEDULED'?'ship-scheduled':'ship-normal';
+    const stageDots = stages.map((s,si)=>
+      `<button class="stage-btn ${o[s]?'done':''}" onclick="toggleStage('${o.id}','${s}')" title="Click to toggle ${stageLabels[si]}">
+        <span class="dot"></span>${stageLabels[si]}
+      </button>`
+    ).join('');
+    const podHtml = o.podImage
+      ? `<img class="pod-thumb" src="${o.podImage}" alt="POD" onclick="openLightbox('${o.id}')" title="Click to view"/>`
+      : o.pod
+        ? (o.pod.startsWith('http')?`<a class="pod-link" href="${o.pod}" target="_blank">View POD</a>`:`<span class="pod-link" title="${o.pod}">📄 ${o.pod.slice(0,12)}</span>`)
+        : `<span class="pod-none">No POD</span>`;
+    const onTimeTxt = o.onTime===true||o.onTime==='true' ? '<span class="c-green">✓ Yes</span>' : o.onTime===false||o.onTime==='false' ? '<span class="c-red">✗ No</span>' : '—';
+
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td class="td-wrap">${o.order||'—'}</td>
+      <td style="color:var(--accent2);font-weight:600">${o.hub||'—'}</td>
+      <td><b>${o._city||'—'}</b></td>
+      <td>${fmtDate(o.date)}</td>
+      <td>${fmtDate(o.shipDate)}</td>
+      <td><div class="stages">${stageDots}</div></td>
+      <td><span class="badge ${badgeCls}">${status}</span></td>
+      <td>
+        <div class="prog-wrap"><div class="prog-bar" style="width:${prog*100}%"></div></div>
+        <span style="font-size:11px;color:var(--muted)">${(prog*100).toFixed(0)}%</span>
+      </td>
+      <td><span class="${shipCls}">${o.shipType||'—'}</span></td>
+      <td>${o.logistics||'—'}</td>
+      <td>${onTimeTxt}</td>
+      <td>${podHtml}</td>
+      <td style="color:var(--muted);font-size:12px">${o.delayReason||'—'}</td>
+      <td>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="openEditModal('${o.id}')">Edit</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="deleteOrder('${o.id}')">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAll() { renderKPIs(); renderTable(); }
+
+// ── Sort column click ──
+function cycleSortCol(col) {
+  const sel = document.getElementById('sortBy');
+  const [cur, dir] = sel.value.split('-');
+  if(cur===col) { sel.value = col+'-'+(dir==='asc'?'desc':'asc'); }
+  else { sel.value = col+'-desc'; }
+  renderTable();
+}
+
+// ── Modal ──
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Order';
+  clearForm();
+  document.getElementById('f_date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const o = orders().find(x=>x.id===id);
+  if(!o) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Order';
+  document.getElementById('f_order').value = o.order||'';
+  document.getElementById('f_hub').value = o.hub||'';
+  document.getElementById('f_city').value = o.city||'';
+  document.getElementById('f_date').value = o.date||'';
+  document.getElementById('f_shipDate').value = o.shipDate||'';
+  document.getElementById('f_shipType').value = o.shipType||'NORMAL';
+  document.getElementById('f_logistics').value = o.logistics||'MTC';
+  document.getElementById('f_pending').checked = !!o.pending;
+  document.getElementById('f_preparing').checked = !!o.preparing;
+  document.getElementById('f_ready').checked = !!o.ready;
+  document.getElementById('f_dispatched').checked = !!o.dispatched;
+  document.getElementById('f_onTime').value = o.onTime===true||o.onTime==='true'?'true':o.onTime===false||o.onTime==='false'?'false':'';
+  document.getElementById('f_beforeTime').value = o.beforeTime===true||o.beforeTime==='true'?'true':o.beforeTime===false||o.beforeTime==='false'?'false':'';
+  document.getElementById('f_delayReason').value = o.delayReason||'';
+  document.getElementById('f_errorType').value = o.errorType||'';
+  document.getElementById('f_pod').value = o.pod||'';
+  document.getElementById('f_notes').value = o.notes||'';
+  if(o.podImage) { setPodImagePreview(o.podImage); } else { clearPodImage(); }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId=null; }
+
+let currentPodImage = '';
+
+function clearForm() {
+  ['f_order','f_hub','f_city','f_date','f_shipDate','f_delayReason','f_errorType','f_pod','f_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_shipType').value='NORMAL';
+  document.getElementById('f_logistics').value='MTC';
+  document.getElementById('f_onTime').value='';
+  document.getElementById('f_beforeTime').value='';
+  ['f_pending','f_preparing','f_ready','f_dispatched'].forEach(id=>document.getElementById(id).checked=false);
+  clearPodImage();
+}
+
+function clearPodImage() {
+  currentPodImage = '';
+  document.getElementById('podPreviewWrap').style.display = 'none';
+  document.getElementById('podPreviewImg').src = '';
+  document.getElementById('podImageInput').value = '';
+  document.getElementById('podDropZone').style.display = '';
+}
+
+function setPodImagePreview(dataUrl) {
+  currentPodImage = dataUrl;
+  document.getElementById('podPreviewImg').src = dataUrl;
+  document.getElementById('podPreviewWrap').style.display = 'inline-block';
+  document.getElementById('podDropZone').style.display = 'none';
+}
+
+function removePodImage() { clearPodImage(); }
+
+function podFileSelected(evt) {
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => setPodImagePreview(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function podDragOver(evt) { evt.preventDefault(); evt.currentTarget.classList.add('dragover'); }
+function podDragLeave(evt) { evt.currentTarget.classList.remove('dragover'); }
+function podDrop(evt) {
+  evt.preventDefault();
+  evt.currentTarget.classList.remove('dragover');
+  const file = evt.dataTransfer.files[0];
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => setPodImagePreview(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function openLightbox(id) {
+  const o = orders().find(x=>x.id===id);
+  if(!o || !o.podImage) return;
+  document.getElementById('lightboxImg').src = o.podImage;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+function saveOrder() {
+  const o = {
+    id: editingId || uid(),
+    order: document.getElementById('f_order').value.trim(),
+    hub: document.getElementById('f_hub').value.trim(),
+    city: document.getElementById('f_city').value.trim(),
+    date: document.getElementById('f_date').value,
+    shipDate: document.getElementById('f_shipDate').value,
+    shipType: document.getElementById('f_shipType').value,
+    logistics: document.getElementById('f_logistics').value,
+    pending: document.getElementById('f_pending').checked,
+    preparing: document.getElementById('f_preparing').checked,
+    ready: document.getElementById('f_ready').checked,
+    dispatched: document.getElementById('f_dispatched').checked,
+    onTime: document.getElementById('f_onTime').value,
+    beforeTime: document.getElementById('f_beforeTime').value,
+    delayReason: document.getElementById('f_delayReason').value.trim(),
+    errorType: document.getElementById('f_errorType').value.trim(),
+    pod: document.getElementById('f_pod').value.trim(),
+    podImage: currentPodImage || '',
+    notes: document.getElementById('f_notes').value.trim(),
+  };
+  if(!o.order) { alert('Order No & Branch is required.'); return; }
+  const list = store[activeMonth];
+  if(editingId) {
+    const idx = list.findIndex(x=>x.id===editingId);
+    if(idx>=0) list[idx]=o;
+  } else {
+    list.push(o);
+  }
+  save();
+  closeModal();
+  renderAll();
+}
+
+function toggleStage(id, stage) {
+  const list = store[activeMonth];
+  const o = list.find(x => x.id === id);
+  if(!o) return;
+  o[stage] = !o[stage];
+  save();
+  renderAll();
+  if(currentView === 'dashboard') renderDashboard();
+}
+
+function deleteOrder(id) {
+  if(!confirm('Delete this order?')) return;
+  store[activeMonth] = store[activeMonth].filter(x=>x.id!==id);
+  save();
+  renderAll();
+}
+
+// ── Import Excel ──
+function importExcel() { document.getElementById('importFile').click(); }
+
+function handleImport(evt) {
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, {type:'binary',cellDates:true});
+    wb.SheetNames.forEach(sheetName => {
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:false});
+      // Find header row (row with 'Order No')
+      let headerIdx = -1;
+      for(let i=0;i<rows.length;i++) {
+        if(rows[i].some(c=>typeof c==='string'&&c.toLowerCase().includes('order no'))) { headerIdx=i; break; }
+      }
+      if(headerIdx<0) return;
+      const headers = rows[headerIdx].map(h=>(h||'').toString().toLowerCase().trim());
+      const colIdx = n => headers.findIndex(h=>h.includes(n));
+      const ci = {
+        order: colIdx('order'), date: colIdx('date'), shipDate: colIdx('shipment'),
+        pending: colIdx('pending'), preparing: colIdx('preparing'), ready: colIdx('ready'),
+        dispatched: colIdx('dispatched'), shipType: colIdx('shipment type'),
+        onTime: colIdx('on time'), beforeTime: colIdx('before time'),
+        logistics: colIdx('logistics'), delayReason: colIdx('delay'), errorType: colIdx('error'),
+        notes: colIdx('notes'), city: colIdx('city'), pod: colIdx('pod'),
+      };
+      const label = sheetName.charAt(0).toUpperCase()+sheetName.slice(1)+' '+new Date().getFullYear();
+      const imported = [];
+      for(let i=headerIdx+1;i<rows.length;i++) {
+        const r = rows[i];
+        if(!r[ci.order]) continue;
+        const toBool = v => v===true||v==='TRUE'||v==='true'||v==='1'||v==='Yes'||v===1;
+        imported.push({
+          id: uid(),
+          order: r[ci.order]||'',
+          city: ci.city>=0?r[ci.city]||'':'',
+          date: ci.date>=0?r[ci.date]||'':'',
+          shipDate: ci.shipDate>=0?r[ci.shipDate]||'':'',
+          shipType: ci.shipType>=0?r[ci.shipType]||'NORMAL':'NORMAL',
+          logistics: ci.logistics>=0?r[ci.logistics]||'Others':'Others',
+          pending: ci.pending>=0?toBool(r[ci.pending]):false,
+          preparing: ci.preparing>=0?toBool(r[ci.preparing]):false,
+          ready: ci.ready>=0?toBool(r[ci.ready]):false,
+          dispatched: ci.dispatched>=0?toBool(r[ci.dispatched]):false,
+          onTime: ci.onTime>=0?toBool(r[ci.onTime])?'true':'false':'',
+          beforeTime: ci.beforeTime>=0?toBool(r[ci.beforeTime])?'true':'false':'',
+          delayReason: ci.delayReason>=0?r[ci.delayReason]||'':'',
+          errorType: ci.errorType>=0?r[ci.errorType]||'':'',
+          pod: ci.pod>=0?r[ci.pod]||'':'',
+          notes: ci.notes>=0?r[ci.notes]||'':'',
+        });
+      }
+      if(imported.length>0) {
+        store[label] = imported;
+        activeMonth = label;
+      }
+    });
+    save();
+    renderTabs();
+    renderAll();
+    alert('Import complete!');
+  };
+  reader.readAsBinaryString(file);
+  evt.target.value='';
+}
+
+// ── Export Excel ──
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  Object.keys(store).forEach(month => {
+    const rows = store[month];
+    const data = [
+      ['Order No & Branch','Hub / Warehouse','City','Date','Shipment Date','Shipment Type','Pending','Preparing','Ready','Dispatched',
+       'Current Status','Progress %','Logistics Co','Dispatched On Time','Dispatched Before Time','Delay Reason','Error Type','POD','Notes']
+    ];
+    rows.forEach(o=>{
+      const status = calcStatus(o);
+      const prog = calcProgress(o);
+      data.push([
+        o.order, o.hub||'', extractCity(o.order||'',o.city||''), o.date, o.shipDate, o.shipType,
+        o.pending, o.preparing, o.ready, o.dispatched,
+        status, prog, o.logistics,
+        o.onTime==='true'?true:o.onTime==='false'?false:'',
+        o.beforeTime==='true'?true:o.beforeTime==='false'?false:'',
+        o.delayReason, o.errorType, o.pod, o.notes
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:35},{wch:14},{wch:12},{wch:14},{wch:12},{wch:9},{wch:10},{wch:8},{wch:11},{wch:13},{wch:10},{wch:12},{wch:18},{wch:20},{wch:18},{wch:12},{wch:30},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws, month.slice(0,31));
+  });
+  XLSX.writeFile(wb, 'WMS_Export_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ── Seed data from Excel ──
+function seedMay() {
+  return [
+    {id:uid(),order:'LB001 Laban, Riyadh',city:'Riyadh',date:'2026-05-02',shipDate:'2026-05-02',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'LB003 Rawdah, Riyadh',city:'Riyadh',date:'2026-05-02',shipDate:'2026-05-02',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'LB008 Zuhur, Dammam',city:'Dammam',date:'2026-05-03',shipDate:'2026-05-04',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'CC050 Mansak, Abha',city:'Abha',date:'2026-05-03',shipDate:'2026-05-04',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000551 CC004 Mohamed Nasr, Riyadh',city:'Riyadh',date:'2026-05-04',shipDate:'2026-05-05',shipType:'NORMAL',logistics:'Others',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000553 CC004 Mohamed Nasr, Riyadh',city:'Riyadh',date:'2026-05-04',shipDate:'2026-05-05',shipType:'NORMAL',logistics:'Others',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000555 LB001 Laban, Riyadh',city:'Riyadh',date:'2026-05-05',shipDate:'2026-05-05',shipType:'URGENT',logistics:'UBER',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:'Urgent & Pending'},
+    {id:uid(),order:'DLTA-000561 LB009 Mansak, Abha',city:'Abha',date:'2026-05-05',shipDate:'2026-05-06',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000562 WH 002 Murjan, Jeddah',city:'Jeddah',date:'2026-05-03',shipDate:'2026-05-03',shipType:'NORMAL',logistics:'SAMSA',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000604 CC003 Laban, Riyadh',city:'Riyadh',date:'2026-05-06',shipDate:'2026-05-10',shipType:'SCHEDULED',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'false',beforeTime:'false',delayReason:'SUPPLY CHAIN',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000631 LB008 Zuhur, Dammam',city:'Dammam',date:'2026-05-07',shipDate:'2026-05-07',shipType:'URGENT',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000633 WH 002 Murjan, Jeddah',city:'Jeddah',date:'2026-05-07',shipDate:'2026-05-07',shipType:'URGENT',logistics:'SAMSA',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000662 LB010 Suways, Jazan',city:'Jazan',date:'2026-05-09',shipDate:'2026-05-18',shipType:'SCHEDULED',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'false',beforeTime:'true',delayReason:'',errorType:'',pod:'',notes:'Monthly Order'},
+    {id:uid(),order:'DLTA-000663 LB009 Mansak, Abha',city:'Abha',date:'2026-05-09',shipDate:'2026-05-18',shipType:'SCHEDULED',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'false',beforeTime:'true',delayReason:'',errorType:'',pod:'',notes:'Monthly Order'},
+    {id:uid(),order:'DLTA-000622 CC047 Khuzamaa, Khobar',city:'Khobar',date:'2026-05-07',shipDate:'2026-05-12',shipType:'SCHEDULED',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+    {id:uid(),order:'DLTA-000588 CC045 Safa, Khobar',city:'Khobar',date:'2026-05-07',shipDate:'2026-05-12',shipType:'SCHEDULED',logistics:'MTC',pending:true,preparing:true,ready:true,dispatched:true,onTime:'true',beforeTime:'false',delayReason:'',errorType:'',pod:'',notes:''},
+  ];
+}
+
+// ── View switching ──
+let currentView = 'table';
+const chartInstances = {};
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('dashboardView').style.display = v==='dashboard' ? 'block' : 'none';
+  document.querySelector('.table-wrap').style.display = v==='table' ? '' : 'none';
+  document.getElementById('rowCount').style.display = v==='table' ? '' : 'none';
+  document.getElementById('btnTableView').classList.toggle('active', v==='table');
+  document.getElementById('btnDashView').classList.toggle('active', v==='dashboard');
+  if(v==='dashboard') renderDashboard();
+}
+
+// ── Chart helpers ──
+const CHART_COLORS = ['#1B3A6B','#4A9B3A','#d4a017','#d93025','#2e6db4','#3a7d2c','#e67e22','#6b4fcc'];
+const gridColor = 'rgba(208,217,232,0.7)';
+const textColor = '#6b7d99';
+
+function baseOpts(type) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#1a2a42', font: {size:12} } } },
+    ...(type==='bar'||type==='line' ? {
+      scales: {
+        x: { ticks:{color:textColor}, grid:{color:gridColor} },
+        y: { ticks:{color:textColor}, grid:{color:gridColor}, beginAtZero:true }
+      }
+    } : {})
+  };
+}
+
+function makeChart(id, type, labels, datasets, extraOpts={}) {
+  if(chartInstances[id]) chartInstances[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  chartInstances[id] = new Chart(ctx, {
+    type, data:{labels, datasets},
+    options: {...baseOpts(type), ...extraOpts}
+  });
+}
+
+// ── Dashboard render ──
+function renderDashboard() {
+  const all = orders().map(o=>({...o, _status:calcStatus(o), _progress:calcProgress(o), _city:extractCity(o.order||'',o.city||'')}));
+  const total = all.length;
+  const completed = all.filter(o=>o._status==='Completed').length;
+  const dispatched = all.filter(o=>o.dispatched).length;
+  const onTimeCnt = all.filter(o=>o.onTime==='true'||o.onTime===true).length;
+  const delayedCnt = all.filter(o=>o.delayReason&&o.delayReason.trim()).length;
+  const onTimePct = dispatched ? (onTimeCnt/dispatched*100).toFixed(1) : 0;
+
+  // ── Stat boxes ──
+  document.getElementById('dashStatRow').innerHTML = `
+    <div class="stat-box blue"><div class="s-label">Total Orders</div><div class="s-val">${total}</div><div class="s-sub">${activeMonth}</div></div>
+    <div class="stat-box green"><div class="s-label">Completed</div><div class="s-val">${completed}</div><div class="s-sub">${total?(completed/total*100).toFixed(0):0}% of total</div></div>
+    <div class="stat-box yellow"><div class="s-label">On-Time Rate</div><div class="s-val">${onTimePct}%</div><div class="s-sub">${onTimeCnt} of ${dispatched} dispatched</div></div>
+    <div class="stat-box red"><div class="s-label">Delayed</div><div class="s-val">${delayedCnt}</div><div class="s-sub">${dispatched?(delayedCnt/dispatched*100).toFixed(1):0}% delay rate</div></div>
+  `;
+
+  // ── Status donut ──
+  const statuses = ['Completed','In Progress','Pending'];
+  const statusCounts = statuses.map(s=>all.filter(o=>o._status===s).length);
+  makeChart('chartStatus','doughnut', statuses, [{
+    data: statusCounts, backgroundColor:['#4A9B3A','#1B3A6B','#e67e22'],
+    borderColor: '#ffffff', borderWidth: 3
+  }], { plugins:{ legend:{position:'bottom', labels:{color:'#1a2a42'}} }, cutout:'65%' });
+
+  // ── Shipment type donut ──
+  const shipTypes = ['URGENT','SCHEDULED','NORMAL'];
+  const shipCounts = shipTypes.map(t=>all.filter(o=>o.shipType===t).length);
+  makeChart('chartShipType','doughnut', shipTypes, [{
+    data: shipCounts, backgroundColor:['#d93025','#d4a017','#4A9B3A'],
+    borderColor:'#ffffff', borderWidth:3
+  }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
+
+  // ── Orders by hub bar ──
+  const hubMap = {};
+  all.forEach(o=>{ const h=o.hub||'(No Hub)'; hubMap[h]=(hubMap[h]||0)+1; });
+  const hubSorted = Object.entries(hubMap).sort((a,b)=>b[1]-a[1]);
+  makeChart('chartHub','bar', hubSorted.map(x=>x[0]), [{
+    label:'Orders', data:hubSorted.map(x=>x[1]),
+    backgroundColor: hubSorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+    borderRadius:6, borderSkipped:false
+  }], { plugins:{legend:{display:false}}, indexAxis:'y' });
+
+  // ── Orders by city bar ──
+  const cityMap = {};
+  all.forEach(o=>{ cityMap[o._city]=(cityMap[o._city]||0)+1; });
+  const citySorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]);
+  makeChart('chartCity','bar', citySorted.map(x=>x[0]), [{
+    label:'Orders', data:citySorted.map(x=>x[1]),
+    backgroundColor: citySorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+    borderRadius:6, borderSkipped:false
+  }], { plugins:{legend:{display:false}}, indexAxis:'y' });
+
+  // ── Logistics bar ──
+  const logMap = {};
+  all.forEach(o=>{ const l=o.logistics||'Others'; logMap[l]=(logMap[l]||0)+1; });
+  const logKeys = Object.keys(logMap);
+  makeChart('chartLogistics','doughnut', logKeys, [{
+    data: logKeys.map(k=>logMap[k]),
+    backgroundColor:['#4f8ef7','#f59e0b','#22c55e','#7c5cfc'],
+    borderColor:'#1a1d27', borderWidth:3
+  }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
+
+  // ── Daily timeline ──
+  const dayMap = {};
+  all.forEach(o=>{
+    if(!o.date) return;
+    const d = o.date.slice(0,10);
+    if(!dayMap[d]) dayMap[d]={total:0,completed:0,urgent:0};
+    dayMap[d].total++;
+    if(o._status==='Completed') dayMap[d].completed++;
+    if(o.shipType==='URGENT') dayMap[d].urgent++;
+  });
+  const days = Object.keys(dayMap).sort();
+  makeChart('chartTimeline','line', days.map(d=>fmtDate(d)), [
+    { label:'Total Orders', data:days.map(d=>dayMap[d].total), borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,.15)', fill:true, tension:.35, pointRadius:4 },
+    { label:'Completed', data:days.map(d=>dayMap[d].completed), borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.1)', fill:true, tension:.35, pointRadius:4 },
+    { label:'Urgent', data:days.map(d=>dayMap[d].urgent), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.1)', fill:false, tension:.35, pointRadius:4, borderDash:[4,3] },
+  ], { plugins:{legend:{position:'top',labels:{color:'#1a2a42'}}} });
+
+  // ── On-time vs delayed bar ──
+  makeChart('chartOnTime','bar', ['On Time','Before Time','Delayed','No Data'], [{
+    data:[
+      all.filter(o=>o.onTime==='true'||o.onTime===true).length,
+      all.filter(o=>o.beforeTime==='true'||o.beforeTime===true).length,
+      delayedCnt,
+      all.filter(o=>o.dispatched&&!o.onTime&&!o.beforeTime).length,
+    ],
+    backgroundColor:['#22c55e','#4f8ef7','#ef4444','#64748b'],
+    borderRadius:6, borderSkipped:false
+  }], { plugins:{legend:{display:false}} });
+
+  // ── Delay reasons ──
+  const dmap = {};
+  all.forEach(o=>{ if(o.delayReason&&o.delayReason.trim()) { const k=o.delayReason.trim(); dmap[k]=(dmap[k]||0)+1; } });
+  const dkeys = Object.keys(dmap);
+  if(dkeys.length) {
+    makeChart('chartDelayReasons','bar', dkeys, [{
+      label:'Count', data:dkeys.map(k=>dmap[k]),
+      backgroundColor:CHART_COLORS, borderRadius:6, borderSkipped:false
+    }], { plugins:{legend:{display:false}} });
+  } else {
+    const ctx = document.getElementById('chartDelayReasons').getContext('2d');
+    if(chartInstances['chartDelayReasons']) chartInstances['chartDelayReasons'].destroy();
+    ctx.fillStyle='#6b7d99'; ctx.font='14px Inter,Segoe UI,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No delays recorded', ctx.canvas.width/2, ctx.canvas.height/2);
+  }
+
+  // ── Activity feed (last 8 orders by date) ──
+  const recent = [...all].sort((a,b)=>toDateVal(b.date)-toDateVal(a.date)).slice(0,8);
+  const dotColor = s => s==='Completed'?'#22c55e':s==='In Progress'?'#4f8ef7':'#f97316';
+  document.getElementById('activityFeed').innerHTML = recent.map(o=>`
+    <li>
+      <div class="feed-dot" style="background:${dotColor(o._status)}"></div>
+      <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.order||'—'}</div>
+      <span class="badge ${o._status==='Completed'?'badge-completed':o._status==='In Progress'?'badge-inprogress':'badge-pending'}" style="font-size:10px">${o._status}</span>
+      <span class="feed-time">${fmtDate(o.date)}</span>
+    </li>`).join('');
+}
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+init();
+</script>
+</body>
+</html>
