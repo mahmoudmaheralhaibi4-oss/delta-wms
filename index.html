@@ -702,7 +702,8 @@ function renderKPIs() {
   const avgProg = total ? (all.reduce((s,o)=>s+o._progress,0)/total*100).toFixed(0) : 0;
   const onTimePct = dispatched ? ((onTime/dispatched)*100).toFixed(1) : '—';
   const delayPct = dispatched ? ((delayed/dispatched)*100).toFixed(1) : '—';
-  const otif = dispatched ? (((onTime+beforeTime)/dispatched)*100).toFixed(1) : '—';
+  const otifCount = all.filter(o => o.dispatched && (o.onTime==='true'||o.onTime===true || o.beforeTime==='true'||o.beforeTime===true)).length;
+  const otif = dispatched ? ((otifCount/dispatched)*100).toFixed(1) : '—';
   const urgent = all.filter(o=>o.shipType==='URGENT').length;
   const scheduled = all.filter(o=>o.shipType==='SCHEDULED').length;
   const normal = all.filter(o=>o.shipType==='NORMAL').length;
