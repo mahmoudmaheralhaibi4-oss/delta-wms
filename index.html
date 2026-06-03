@@ -6,6 +6,8 @@
 <title>Delta WMS — Warehouse Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
   /* ══ Delta Medical Laboratories — Brand Tokens ══ */
   :root {
@@ -276,6 +278,16 @@
 </style>
 </head>
 <body>
+
+<!-- ── Loading Screen ── -->
+<div id="loadingScreen" style="display:flex;position:fixed;inset:0;z-index:2000;background:linear-gradient(135deg,#1B3A6B,#0d2247);align-items:center;justify-content:center;flex-direction:column;gap:18px">
+  <div style="width:48px;height:48px;background:#4A9B3A;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+  <div style="color:#fff;font-size:20px;font-weight:800;letter-spacing:.5px">Delta WMS</div>
+  <div style="color:rgba(255,255,255,.5);font-size:13px">Connecting to cloud…</div>
+  <div style="width:180px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden">
+    <div id="loadingBar" style="height:100%;width:0%;background:#4A9B3A;border-radius:2px;transition:width .4s ease"></div>
+  </div>
+</div>
 
 <!-- ── Login Screen ── -->
 <div id="loginScreen" class="show">
@@ -733,6 +745,22 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════
+// ── FIREBASE CONFIG ──
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAQfNWKdgqjOFiN6Ylf3z1lvJRg3BrCEKk",
+  authDomain: "delta-wms.firebaseapp.com",
+  databaseURL: "https://delta-wms-default-rtdb.firebaseio.com",
+  projectId: "delta-wms",
+  storageBucket: "delta-wms.firebasestorage.app",
+  messagingSenderId: "847387133341",
+  appId: "1:847387133341:web:6722bef60ba2f9dddddb74"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let firebaseReady = false;
+
 // ── Data store ──
 let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
 let activeMonth = null;
@@ -779,7 +807,10 @@ function getUsers() {
   const u = localStorage.getItem('wms_users');
   return u ? JSON.parse(u) : [];
 }
-function saveUsers(users) { localStorage.setItem('wms_users', JSON.stringify(users)); }
+function saveUsers(users) {
+  localStorage.setItem('wms_users', JSON.stringify(users));
+  if(firebaseReady) db.ref('wms_users').set(users).catch(console.error);
+}
 
 async function seedDefaultAdmin() {
   if(getUsers().length > 0) return;
@@ -802,6 +833,7 @@ async function doLogin() {
   document.getElementById('loginScreen').classList.remove('show');
   applyUserUI();
   initWMS();
+  if(firebaseReady) startRealtimeSync();
 }
 
 function doLogout() {
@@ -964,22 +996,52 @@ async function doChangePassword() {
 
 // ── Init ──
 async function init() {
+  const bar = document.getElementById('loadingBar');
+  bar.style.width = '20%';
+
+  try {
+    // Load data + users from Firebase
+    const [dataSnap, usersSnap] = await Promise.all([
+      db.ref('wms_data').once('value'),
+      db.ref('wms_users').once('value')
+    ]);
+    bar.style.width = '70%';
+
+    const fbData  = dataSnap.val();
+    const fbUsers = usersSnap.val();
+    if(fbData)  { store = fbData;  localStorage.setItem('wms_data',  JSON.stringify(fbData)); }
+    if(fbUsers) { localStorage.setItem('wms_users', JSON.stringify(fbUsers)); }
+
+    firebaseReady = true;
+  } catch(e) {
+    console.warn('Firebase unavailable — using local cache', e);
+  }
+
+  bar.style.width = '85%';
   await seedDefaultAdmin();
+  bar.style.width = '100%';
+
+  // Hide loading screen
+  setTimeout(() => { document.getElementById('loadingScreen').style.display = 'none'; }, 300);
+
   // Check for existing session
   const session = localStorage.getItem('wms_session');
   if(session) {
-    const s = JSON.parse(session);
-    const users = getUsers();
-    const user = users.find(u => u.id === s.id && u.username === s.username);
-    if(user) {
-      currentUser = user;
-      document.getElementById('loginScreen').classList.remove('show');
-      applyUserUI();
-      initWMS();
-      return;
-    }
+    try {
+      const s = JSON.parse(session);
+      const users = getUsers();
+      const user = users.find(u => u.id === s.id && u.username === s.username);
+      if(user) {
+        currentUser = user;
+        document.getElementById('loginScreen').classList.remove('show');
+        applyUserUI();
+        initWMS();
+        if(firebaseReady) startRealtimeSync();
+        return;
+      }
+    } catch(e) {}
+    localStorage.removeItem('wms_session');
   }
-  // Show login
   document.getElementById('loginScreen').classList.add('show');
 }
 
@@ -997,7 +1059,29 @@ function initWMS() {
   renderAll();
 }
 
-function save() { localStorage.setItem('wms_data', JSON.stringify(store)); }
+function save() {
+  localStorage.setItem('wms_data', JSON.stringify(store));
+  if(firebaseReady) db.ref('wms_data').set(store).catch(console.error);
+}
+
+function startRealtimeSync() {
+  // Live orders sync
+  db.ref('wms_data').on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    const incoming = JSON.stringify(data);
+    if(incoming !== JSON.stringify(store)) {
+      store = data;
+      localStorage.setItem('wms_data', incoming);
+      if(currentUser) renderAll();
+    }
+  });
+  // Live users sync
+  db.ref('wms_users').on('value', snap => {
+    const users = snap.val();
+    if(users) localStorage.setItem('wms_users', JSON.stringify(users));
+  });
+}
 
 // ── Tabs ──
 function renderTabs() {
