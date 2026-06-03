@@ -6,8 +6,7 @@
 <title>Delta WMS — Warehouse Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<!-- Firebase via REST API — no SDK needed -->
 <style>
   /* ══ Delta Medical Laboratories — Brand Tokens ══ */
   :root {
@@ -747,20 +746,29 @@
 
 <script>
 // ══════════════════════════════════════════
-// ── FIREBASE CONFIG ──
+// ── FIREBASE REST API (no SDK) ──
 // ══════════════════════════════════════════
-const firebaseConfig = {
-  apiKey: "AIzaSyAQfNWKdgqjOFiN6Ylf3z1lvJRg3BrCEKk",
-  authDomain: "delta-wms.firebaseapp.com",
-  databaseURL: "https://delta-wms-default-rtdb.firebaseio.com",
-  projectId: "delta-wms",
-  storageBucket: "delta-wms.firebasestorage.app",
-  messagingSenderId: "847387133341",
-  appId: "1:847387133341:web:6722bef60ba2f9dddddb74"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const FB = 'https://delta-wms-default-rtdb.firebaseio.com';
 let firebaseReady = false;
+
+async function fbRead(path) {
+  try {
+    const res = await fetch(`${FB}${path}.json`);
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+async function fbWrite(path, data) {
+  try {
+    const res = await fetch(`${FB}${path}.json`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return res.ok;
+  } catch(e) { return false; }
+}
 
 // ── Data store ──
 let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
@@ -810,10 +818,7 @@ function getUsers() {
   const parsed = JSON.parse(u);
   return Array.isArray(parsed) ? parsed : Object.values(parsed);
 }
-function saveUsers(users) {
-  localStorage.setItem('wms_users', JSON.stringify(users));
-  if(firebaseReady) db.ref('wms_users').set(users).catch(console.error);
-}
+// saveUsers defined below with Firebase REST API
 
 async function seedDefaultAdmin() {
   if(getUsers().length > 0) return;
@@ -1077,45 +1082,53 @@ function initWMS() {
   renderAll();
 }
 
-function save() {
-  const normalized = normalizeStore(store);
-  store = normalized;
+async function save() {
+  store = normalizeStore(store);
   localStorage.setItem('wms_data', JSON.stringify(store));
   if(firebaseReady) {
-    db.ref('wms_data').set(store)
-      .then(() => setSyncStatus('✓ Synced', 'green'))
-      .catch(e => { console.error('Firebase write failed:', e); setSyncStatus('⚠ Sync failed — check rules', 'red'); });
+    setSyncStatus('↑ Saving…', 'blue');
+    const ok = await fbWrite('/wms_data', store);
+    setSyncStatus(ok ? '✓ Synced' : '⚠ Sync failed — check Firebase rules', ok ? 'green' : 'red');
   }
 }
 
+async function saveUsers(users) {
+  localStorage.setItem('wms_users', JSON.stringify(users));
+  if(firebaseReady) await fbWrite('/wms_users', users);
+}
+
 function setSyncStatus(msg, color) {
-  let el = document.getElementById('syncStatus');
+  const el = document.getElementById('syncStatus');
   if(!el) return;
   el.textContent = msg;
-  el.style.color = color === 'green' ? '#4A9B3A' : '#d93025';
+  const colors = { green:'#4A9B3A', red:'#d93025', blue:'#1B3A6B' };
+  el.style.color = colors[color] || color;
   clearTimeout(el._t);
-  el._t = setTimeout(() => { el.textContent = ''; }, 4000);
+  if(color !== 'blue') el._t = setTimeout(() => { el.textContent = ''; }, 5000);
 }
 
 function startRealtimeSync() {
-  db.ref('wms_data').on('value', snap => {
-    const data = snap.val();
-    if(!data) return;
-    const normalized = normalizeStore(data);
-    const incoming = JSON.stringify(normalized);
-    if(incoming !== JSON.stringify(store)) {
-      store = normalized;
-      localStorage.setItem('wms_data', incoming);
-      if(currentUser) { renderAll(); setSyncStatus('↻ Updated from cloud', 'green'); }
+  // Poll Firebase every 15 seconds for changes from other devices
+  setInterval(async () => {
+    if(!firebaseReady || !currentUser) return;
+    const [fbData, fbUsers] = await Promise.all([
+      fbRead('/wms_data'),
+      fbRead('/wms_users')
+    ]);
+    if(fbData) {
+      const normalized = normalizeStore(fbData);
+      if(JSON.stringify(normalized) !== JSON.stringify(store)) {
+        store = normalized;
+        localStorage.setItem('wms_data', JSON.stringify(store));
+        renderAll();
+        setSyncStatus('↻ Updated from cloud', 'green');
+      }
     }
-  });
-  db.ref('wms_users').on('value', snap => {
-    const users = snap.val();
-    if(users) {
-      const arr = Array.isArray(users) ? users : Object.values(users);
+    if(fbUsers) {
+      const arr = Array.isArray(fbUsers) ? fbUsers : Object.values(fbUsers);
       localStorage.setItem('wms_users', JSON.stringify(arr));
     }
-  });
+  }, 15000);
 }
 
 // ── Tabs ──
