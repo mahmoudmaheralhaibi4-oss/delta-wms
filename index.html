@@ -843,12 +843,18 @@ document.addEventListener('click', e => {
 // ── View switching (wms / accounts) ──
 function showView(view) {
   document.getElementById('accountsPanel').style.display = view === 'accounts' ? 'block' : 'none';
-  document.getElementById('tabs').style.display           = view === 'wms' ? '' : 'none';
-  document.getElementById('kpiGrid').style.display        = view === 'wms' ? '' : 'none';
-  document.querySelector('.toolbar').style.display        = view === 'wms' ? '' : 'none';
-  document.querySelector('.table-wrap').style.display     = view === 'wms' ? '' : 'none';
-  document.getElementById('rowCount').style.display       = view === 'wms' ? '' : 'none';
-  document.getElementById('dashboardView').style.display  = 'none';
+  const wmsVisible = view === 'wms';
+  document.getElementById('tabs').style.display    = wmsVisible ? '' : 'none';
+  document.getElementById('kpiGrid').style.display = wmsVisible ? '' : 'none';
+  document.querySelector('.toolbar').style.display = wmsVisible ? '' : 'none';
+  if(wmsVisible) {
+    // Restore correct sub-view (table vs dashboard)
+    setView(currentView || 'table');
+  } else {
+    document.querySelector('.table-wrap').style.display    = 'none';
+    document.getElementById('rowCount').style.display      = 'none';
+    document.getElementById('dashboardView').style.display = 'none';
+  }
   if(view === 'accounts') renderAccountsGrid();
 }
 
@@ -1277,8 +1283,8 @@ function saveOrder() {
   const o = {
     id: editingId || uid(),
     order: document.getElementById('f_order').value.trim(),
-    hub: document.getElementById('f_hub').value.trim(),
-    city: document.getElementById('f_city').value.trim(),
+    hub: document.getElementById('f_hub').value,
+    city: document.getElementById('f_city').value,
     date: document.getElementById('f_date').value,
     shipDate: document.getElementById('f_shipDate').value,
     shipType: document.getElementById('f_shipType').value,
@@ -1296,21 +1302,32 @@ function saveOrder() {
     notes: document.getElementById('f_notes').value.trim(),
   };
   if(!o.order) { alert('Order No & Branch is required.'); return; }
+  // Guard: ensure month array exists
+  if(!store[activeMonth]) store[activeMonth] = [];
   const list = store[activeMonth];
   if(editingId) {
     const idx = list.findIndex(x=>x.id===editingId);
-    if(idx>=0) list[idx]=o;
+    if(idx>=0) list[idx]=o; else list.push(o);
   } else {
     list.push(o);
   }
   save();
   closeModal();
+  // Clear all filters so the new/edited order is always visible
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterShipType').value = '';
+  document.getElementById('filterHub').value = '';
+  document.getElementById('filterCity').value = '';
+  document.getElementById('filterLogistics').value = '';
+  // Always switch to table view to show the result
+  setView('table');
   renderAll();
 }
 
 function toggleStage(id, stage) {
-  const list = store[activeMonth];
-  const o = list.find(x => x.id === id);
+  if(!store[activeMonth]) return;
+  const o = store[activeMonth].find(x => x.id === id);
   if(!o) return;
   o[stage] = !o[stage];
   save();
