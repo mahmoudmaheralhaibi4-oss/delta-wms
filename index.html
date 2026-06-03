@@ -1008,18 +1008,18 @@ async function init() {
   bar.style.width = '20%';
 
   try {
-    // Load data + users from Firebase
-    const [dataSnap, usersSnap] = await Promise.all([
-      db.ref('wms_data').once('value'),
-      db.ref('wms_users').once('value')
+    // Load data + users from Firebase using REST API
+    const [fbData, fbUsers] = await Promise.all([
+      fbRead('/wms_data'),
+      fbRead('/wms_users')
     ]);
     bar.style.width = '70%';
 
-    const fbData  = dataSnap.val();
-    const fbUsers = usersSnap.val();
-    if(fbData)  { store = fbData;  localStorage.setItem('wms_data',  JSON.stringify(fbData)); }
-    if(fbUsers) { localStorage.setItem('wms_users', JSON.stringify(fbUsers)); }
-
+    if(fbData)  { store = normalizeStore(fbData); localStorage.setItem('wms_data',  JSON.stringify(store)); }
+    if(fbUsers) {
+      const arr = Array.isArray(fbUsers) ? fbUsers : Object.values(fbUsers);
+      localStorage.setItem('wms_users', JSON.stringify(arr));
+    }
     firebaseReady = true;
   } catch(e) {
     console.warn('Firebase unavailable — using local cache', e);
