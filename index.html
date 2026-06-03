@@ -326,6 +326,7 @@
   <div class="header-divider"></div>
   <span class="sub" style="color:rgba(255,255,255,.6);font-size:13px;font-weight:500;">Delta Medical Laboratories</span>
   <div class="spacer"></div>
+  <span id="syncStatus" style="font-size:12px;font-weight:600;min-width:120px;text-align:right"></span>
   <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="importExcel()">⬆ Import</button>
   <button class="btn btn-success" onclick="exportExcel()">⬇ Export</button>
   <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
@@ -805,7 +806,9 @@ async function hashPwd(pwd) {
 
 function getUsers() {
   const u = localStorage.getItem('wms_users');
-  return u ? JSON.parse(u) : [];
+  if(!u) return [];
+  const parsed = JSON.parse(u);
+  return Array.isArray(parsed) ? parsed : Object.values(parsed);
 }
 function saveUsers(users) {
   localStorage.setItem('wms_users', JSON.stringify(users));
@@ -1045,41 +1048,73 @@ async function init() {
   document.getElementById('loginScreen').classList.add('show');
 }
 
+// ── Normalize Firebase data (Firebase turns arrays → objects) ──
+function normalizeStore(raw) {
+  if(!raw || typeof raw !== 'object') return {};
+  const out = {};
+  Object.keys(raw).forEach(month => {
+    const v = raw[month];
+    out[month] = Array.isArray(v) ? v : (v && typeof v==='object' ? Object.values(v) : []);
+  });
+  return out;
+}
+
 function initWMS() {
-  const saved = localStorage.getItem('wms_data');
-  if(saved) {
-    store = JSON.parse(saved);
-  } else {
+  // Use store already loaded from Firebase; fall back to localStorage only if empty
+  if(!store || Object.keys(store).length === 0) {
+    const saved = localStorage.getItem('wms_data');
+    store = saved ? JSON.parse(saved) : {};
+  }
+  store = normalizeStore(store);
+  if(Object.keys(store).length === 0) {
     store['May 2026'] = seedMay();
     store['Jun 2026'] = [];
   }
-  const months = Object.keys(store);
-  activeMonth = months[0];
+  // Ensure all months are arrays
+  Object.keys(store).forEach(m => { if(!Array.isArray(store[m])) store[m] = []; });
+  activeMonth = Object.keys(store)[0];
   renderTabs();
   renderAll();
 }
 
 function save() {
+  const normalized = normalizeStore(store);
+  store = normalized;
   localStorage.setItem('wms_data', JSON.stringify(store));
-  if(firebaseReady) db.ref('wms_data').set(store).catch(console.error);
+  if(firebaseReady) {
+    db.ref('wms_data').set(store)
+      .then(() => setSyncStatus('✓ Synced', 'green'))
+      .catch(e => { console.error('Firebase write failed:', e); setSyncStatus('⚠ Sync failed — check rules', 'red'); });
+  }
+}
+
+function setSyncStatus(msg, color) {
+  let el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = color === 'green' ? '#4A9B3A' : '#d93025';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
 function startRealtimeSync() {
-  // Live orders sync
   db.ref('wms_data').on('value', snap => {
     const data = snap.val();
     if(!data) return;
-    const incoming = JSON.stringify(data);
+    const normalized = normalizeStore(data);
+    const incoming = JSON.stringify(normalized);
     if(incoming !== JSON.stringify(store)) {
-      store = data;
+      store = normalized;
       localStorage.setItem('wms_data', incoming);
-      if(currentUser) renderAll();
+      if(currentUser) { renderAll(); setSyncStatus('↻ Updated from cloud', 'green'); }
     }
   });
-  // Live users sync
   db.ref('wms_users').on('value', snap => {
     const users = snap.val();
-    if(users) localStorage.setItem('wms_users', JSON.stringify(users));
+    if(users) {
+      const arr = Array.isArray(users) ? users : Object.values(users);
+      localStorage.setItem('wms_users', JSON.stringify(arr));
+    }
   });
 }
 
