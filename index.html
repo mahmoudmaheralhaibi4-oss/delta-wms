@@ -174,6 +174,61 @@
   .pod-preview-img { max-width: 100%; max-height: 180px; border-radius: 8px; border: 1px solid var(--border); display: block; }
   .pod-remove-btn { position: absolute; top: -8px; right: -8px; background: var(--red); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
+  /* ── Login Screen ── */
+  #loginScreen {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: linear-gradient(135deg, var(--navy) 0%, #0d2247 60%, #163360 100%);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  #loginScreen.show { display: flex; }
+  .login-box {
+    background: #fff; border-radius: 18px; padding: 40px 44px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  }
+  .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .login-logo-mark { width: 44px; height: 44px; background: var(--green); clip-path: polygon(50% 0%,0% 100%,100% 100%); flex-shrink:0; }
+  .login-logo-text .t1 { font-size: 22px; font-weight: 800; color: var(--navy); }
+  .login-logo-text .t2 { font-size: 11px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+  .login-box h2 { font-size: 15px; color: var(--text); font-weight: 700; margin-bottom: 4px; }
+  .login-box p.login-sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+  .login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .login-field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .login-field input { padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); background: #fafbfd; color: var(--text); font-size: 14px; }
+  .login-field input:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(27,58,107,.1); }
+  .login-err { color: var(--red); font-size: 12px; margin-bottom: 10px; min-height: 18px; }
+  .btn-login { width: 100%; padding: 11px; background: var(--navy); color: #fff; border: none; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; transition: background .15s; }
+  .btn-login:hover { background: var(--navy2); }
+  .login-footer { text-align: center; margin-top: 20px; font-size: 11px; color: var(--muted); }
+
+  /* ── User menu ── */
+  .user-chip { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 12px 5px 6px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); transition: background .15s; position: relative; }
+  .user-chip:hover { background: rgba(255,255,255,.1); }
+  .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink:0; }
+  .user-name { font-size: 13px; color: #fff; font-weight: 600; }
+  .user-role { font-size: 10px; color: rgba(255,255,255,.55); }
+  .user-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(27,58,107,.15); min-width: 180px; z-index: 300; overflow: hidden; }
+  .user-dropdown.open { display: block; }
+  .user-dropdown a { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; color: var(--text); cursor: pointer; transition: background .1s; text-decoration: none; }
+  .user-dropdown a:hover { background: var(--navy-lt); }
+  .user-dropdown .sep { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+  /* ── Accounts Panel ── */
+  #accountsPanel { display: none; }
+  .accounts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .accounts-header h2 { font-size: 17px; font-weight: 700; color: var(--navy); }
+  .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 14px; margin-bottom: 24px; }
+  .account-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 4px rgba(27,58,107,.07); }
+  .account-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; flex-shrink:0; }
+  .account-avatar.green { background: var(--green); }
+  .account-info { flex: 1; }
+  .account-info .a-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .account-info .a-user { font-size: 12px; color: var(--muted); }
+  .role-badge { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
+  .role-admin  { background: #e8edf6; color: var(--navy); border: 1px solid #b8c8e8; }
+  .role-editor { background: var(--green-lt); color: var(--green2); border: 1px solid #b8e0b0; }
+  .role-viewer { background: #fdf3e3; color: #a05a00; border: 1px solid #f0d09a; }
+
   /* ── Lightbox ── */
   .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
   .lightbox.open { display: flex; }
@@ -222,6 +277,32 @@
 </head>
 <body>
 
+<!-- ── Login Screen ── -->
+<div id="loginScreen" class="show">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark"></div>
+      <div class="login-logo-text">
+        <div class="t1">Delta WMS</div>
+        <div class="t2">Warehouse Management System</div>
+      </div>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="login-sub">Sign in to your Delta WMS account</p>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">Delta Medical Laboratories © 2026</div>
+  </div>
+</div>
+
 <header>
   <div class="header-logo">
     <div class="logo-mark"></div>
@@ -233,12 +314,38 @@
   <div class="header-divider"></div>
   <span class="sub" style="color:rgba(255,255,255,.6);font-size:13px;font-weight:500;">Delta Medical Laboratories</span>
   <div class="spacer"></div>
-  <button class="btn btn-outline" onclick="importExcel()">⬆ Import Excel</button>
-  <button class="btn btn-success" onclick="exportExcel()">⬇ Export Excel</button>
+  <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="importExcel()">⬆ Import</button>
+  <button class="btn btn-success" onclick="exportExcel()">⬇ Export</button>
   <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
+  <!-- User chip -->
+  <div class="user-chip" id="userChip" onclick="toggleUserMenu()">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div>
+      <div class="user-name" id="userNameDisplay">—</div>
+      <div class="user-role" id="userRoleDisplay">—</div>
+    </div>
+    <div class="user-dropdown" id="userDropdown">
+      <a onclick="showView('accounts')" id="manageUsersLink">👥 Manage Users</a>
+      <a onclick="openChangePassword()">🔑 Change Password</a>
+      <hr class="sep"/>
+      <a onclick="doLogout()" style="color:var(--red)">↩ Sign Out</a>
+    </div>
+  </div>
 </header>
 
 <main>
+  <!-- ── Accounts Panel ── -->
+  <div id="accountsPanel">
+    <div class="accounts-header">
+      <h2>👥 Team Accounts</h2>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="openAddUserModal()">+ Add User</button>
+        <button class="btn btn-outline" onclick="showView('wms')">← Back to WMS</button>
+      </div>
+    </div>
+    <div class="accounts-grid" id="accountsGrid"></div>
+  </div>
+
   <!-- Month Tabs -->
   <div class="tabs" id="tabs"></div>
 
@@ -332,6 +439,66 @@
   </div>
   <div style="margin-top:8px;color:var(--muted);font-size:12px;" id="rowCount"></div>
 </main>
+
+<!-- Add/Edit User Modal -->
+<div class="modal-overlay" id="userModalOverlay">
+  <div class="modal" style="max-width:460px">
+    <h2 id="userModalTitle">Add User</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="u_name" placeholder="e.g. Ahmed Ali"/>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="u_username" placeholder="e.g. ahmed.ali"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="u_password" placeholder="Min 6 characters"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="u_role">
+          <option value="editor">Editor — can add & edit orders</option>
+          <option value="viewer">Viewer — read only</option>
+          <option value="admin">Admin — full access</option>
+        </select>
+      </div>
+    </div>
+    <div class="login-err" id="userModalErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="changePwdOverlay">
+  <div class="modal" style="max-width:400px">
+    <h2>🔑 Change Password</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Current Password</label>
+        <input type="password" id="cp_current" placeholder="Current password"/>
+      </div>
+      <div class="form-group full">
+        <label>New Password</label>
+        <input type="password" id="cp_new" placeholder="New password (min 6 chars)"/>
+      </div>
+      <div class="form-group full">
+        <label>Confirm New Password</label>
+        <input type="password" id="cp_confirm" placeholder="Repeat new password"/>
+      </div>
+    </div>
+    <div class="login-err" id="changePwdErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('changePwdOverlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="doChangePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
@@ -598,13 +765,223 @@ function extractCity(order, city) {
   return 'Unknown';
 }
 
+// ══════════════════════════════════════════
+// ── AUTH SYSTEM ──
+// ══════════════════════════════════════════
+let currentUser = null;
+
+async function hashPwd(pwd) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function getUsers() {
+  const u = localStorage.getItem('wms_users');
+  return u ? JSON.parse(u) : [];
+}
+function saveUsers(users) { localStorage.setItem('wms_users', JSON.stringify(users)); }
+
+async function seedDefaultAdmin() {
+  if(getUsers().length > 0) return;
+  const hash = await hashPwd('delta123');
+  saveUsers([{ id: uid(), name: 'Admin', username: 'admin', pwdHash: hash, role: 'admin' }]);
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim().toLowerCase();
+  const password = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  err.textContent = '';
+  if(!username || !password) { err.textContent = 'Please enter username and password.'; return; }
+  const hash = await hashPwd(password);
+  const users = getUsers();
+  const user = users.find(u => u.username.toLowerCase() === username && u.pwdHash === hash);
+  if(!user) { err.textContent = 'Incorrect username or password.'; return; }
+  currentUser = user;
+  localStorage.setItem('wms_session', JSON.stringify({ id: user.id, username: user.username }));
+  document.getElementById('loginScreen').classList.remove('show');
+  applyUserUI();
+  initWMS();
+}
+
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('wms_session');
+  document.getElementById('loginScreen').classList.add('show');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('userDropdown').classList.remove('open');
+}
+
+function applyUserUI() {
+  if(!currentUser) return;
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userNameDisplay').textContent = currentUser.name;
+  document.getElementById('userRoleDisplay').textContent = currentUser.role.charAt(0).toUpperCase()+currentUser.role.slice(1);
+  // Hide manage users for non-admin
+  document.getElementById('manageUsersLink').style.display = currentUser.role === 'admin' ? '' : 'none';
+  // Viewer: hide add/edit/delete
+  const editable = currentUser.role !== 'viewer';
+  ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
+}
+
+function canEdit() {
+  if(!currentUser) return false;
+  return currentUser.role === 'admin' || currentUser.role === 'editor';
+}
+
+function toggleUserMenu() {
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if(!document.getElementById('userChip').contains(e.target))
+    document.getElementById('userDropdown').classList.remove('open');
+});
+
+// ── View switching (wms / accounts) ──
+function showView(view) {
+  document.getElementById('accountsPanel').style.display = view === 'accounts' ? 'block' : 'none';
+  document.getElementById('tabs').style.display           = view === 'wms' ? '' : 'none';
+  document.getElementById('kpiGrid').style.display        = view === 'wms' ? '' : 'none';
+  document.querySelector('.toolbar').style.display        = view === 'wms' ? '' : 'none';
+  document.querySelector('.table-wrap').style.display     = view === 'wms' ? '' : 'none';
+  document.getElementById('rowCount').style.display       = view === 'wms' ? '' : 'none';
+  document.getElementById('dashboardView').style.display  = 'none';
+  if(view === 'accounts') renderAccountsGrid();
+}
+
+// ── Accounts Grid ──
+function renderAccountsGrid() {
+  const users = getUsers();
+  const roleClass = r => r==='admin'?'role-admin':r==='editor'?'role-editor':'role-viewer';
+  const avatarClass = r => r==='admin'?'':'green';
+  document.getElementById('accountsGrid').innerHTML = users.map(u => `
+    <div class="account-card">
+      <div class="account-avatar ${avatarClass(u.role)}">${u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div class="account-info">
+        <div class="a-name">${u.name}</div>
+        <div class="a-user">@${u.username}</div>
+      </div>
+      <span class="role-badge ${roleClass(u.role)}">${u.role.toUpperCase()}</span>
+      ${u.id !== currentUser.id ? `
+        <div style="display:flex;flex-direction:column;gap:4px;margin-left:6px">
+          <button class="btn btn-outline" style="padding:3px 10px;font-size:11px" onclick="openEditUserModal('${u.id}')">Edit</button>
+          <button class="btn btn-danger"  style="padding:3px 10px;font-size:11px" onclick="deleteUser('${u.id}')">Del</button>
+        </div>` : `<span style="font-size:11px;color:var(--muted);margin-left:6px">You</span>`}
+    </div>`).join('');
+}
+
+let editingUserId = null;
+function openAddUserModal() {
+  editingUserId = null;
+  document.getElementById('userModalTitle').textContent = 'Add User';
+  ['u_name','u_username','u_password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('u_role').value = 'editor';
+  document.getElementById('userModalErr').textContent = '';
+  document.getElementById('userModalOverlay').classList.add('open');
+}
+function openEditUserModal(id) {
+  const user = getUsers().find(u=>u.id===id);
+  if(!user) return;
+  editingUserId = id;
+  document.getElementById('userModalTitle').textContent = 'Edit User';
+  document.getElementById('u_name').value = user.name;
+  document.getElementById('u_username').value = user.username;
+  document.getElementById('u_password').value = '';
+  document.getElementById('u_role').value = user.role;
+  document.getElementById('userModalErr').textContent = '';
+  document.getElementById('userModalOverlay').classList.add('open');
+}
+function closeUserModal() { document.getElementById('userModalOverlay').classList.remove('open'); }
+
+async function saveUser() {
+  const name = document.getElementById('u_name').value.trim();
+  const username = document.getElementById('u_username').value.trim().toLowerCase();
+  const password = document.getElementById('u_password').value;
+  const role = document.getElementById('u_role').value;
+  const errEl = document.getElementById('userModalErr');
+  errEl.textContent = '';
+  if(!name || !username) { errEl.textContent = 'Name and username are required.'; return; }
+  const users = getUsers();
+  const duplicate = users.find(u => u.username === username && u.id !== editingUserId);
+  if(duplicate) { errEl.textContent = 'Username already exists.'; return; }
+  if(editingUserId) {
+    const u = users.find(x=>x.id===editingUserId);
+    u.name = name; u.username = username; u.role = role;
+    if(password) {
+      if(password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+      u.pwdHash = await hashPwd(password);
+    }
+  } else {
+    if(password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    users.push({ id: uid(), name, username, pwdHash: await hashPwd(password), role });
+  }
+  saveUsers(users);
+  closeUserModal();
+  renderAccountsGrid();
+}
+
+function deleteUser(id) {
+  if(!confirm('Delete this user?')) return;
+  saveUsers(getUsers().filter(u=>u.id!==id));
+  renderAccountsGrid();
+}
+
+// ── Change Password ──
+function openChangePassword() {
+  document.getElementById('userDropdown').classList.remove('open');
+  ['cp_current','cp_new','cp_confirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('changePwdErr').textContent='';
+  document.getElementById('changePwdOverlay').classList.add('open');
+}
+async function doChangePassword() {
+  const current = document.getElementById('cp_current').value;
+  const newPwd   = document.getElementById('cp_new').value;
+  const confirm  = document.getElementById('cp_confirm').value;
+  const errEl = document.getElementById('changePwdErr');
+  errEl.textContent = '';
+  if(!current||!newPwd||!confirm) { errEl.textContent = 'All fields are required.'; return; }
+  if(newPwd.length < 6) { errEl.textContent = 'New password must be at least 6 characters.'; return; }
+  if(newPwd !== confirm) { errEl.textContent = 'Passwords do not match.'; return; }
+  const currentHash = await hashPwd(current);
+  if(currentHash !== currentUser.pwdHash) { errEl.textContent = 'Current password is incorrect.'; return; }
+  const users = getUsers();
+  const u = users.find(x=>x.id===currentUser.id);
+  u.pwdHash = await hashPwd(newPwd);
+  currentUser.pwdHash = u.pwdHash;
+  saveUsers(users);
+  document.getElementById('changePwdOverlay').classList.remove('open');
+  alert('Password updated successfully!');
+}
+
 // ── Init ──
-function init() {
+async function init() {
+  await seedDefaultAdmin();
+  // Check for existing session
+  const session = localStorage.getItem('wms_session');
+  if(session) {
+    const s = JSON.parse(session);
+    const users = getUsers();
+    const user = users.find(u => u.id === s.id && u.username === s.username);
+    if(user) {
+      currentUser = user;
+      document.getElementById('loginScreen').classList.remove('show');
+      applyUserUI();
+      initWMS();
+      return;
+    }
+  }
+  // Show login
+  document.getElementById('loginScreen').classList.add('show');
+}
+
+function initWMS() {
   const saved = localStorage.getItem('wms_data');
   if(saved) {
     store = JSON.parse(saved);
   } else {
-    // Seed with May 2026 demo data from the Excel
     store['May 2026'] = seedMay();
     store['Jun 2026'] = [];
   }
