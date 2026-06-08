@@ -690,6 +690,7 @@
           <label><input type="checkbox" id="f_ready"/> Ready</label>
           <label><input type="checkbox" id="f_dispatched"/> Dispatched</label>
         </div>
+        <div id="stageHint" class="hint" style="display:none;margin-top:6px;font-size:12px;color:#666">New orders start as Pending — progress through stages from the table.</div>
       </div>
       <div class="form-group">
         <label>Dispatched On Time</label>
@@ -1349,6 +1350,15 @@ function openAddModal() {
   document.getElementById('modalTitle').textContent = 'New Order';
   clearForm();
   document.getElementById('f_date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f_pending').checked = true;
+  document.getElementById('f_pending').disabled = true;
+  document.getElementById('f_preparing').checked = false;
+  document.getElementById('f_preparing').disabled = true;
+  document.getElementById('f_ready').checked = false;
+  document.getElementById('f_ready').disabled = true;
+  document.getElementById('f_dispatched').checked = false;
+  document.getElementById('f_dispatched').disabled = true;
+  document.getElementById('stageHint').style.display = 'block';
   document.getElementById('modalOverlay').classList.add('open');
 }
 
@@ -1365,9 +1375,14 @@ function openEditModal(id) {
   document.getElementById('f_shipType').value = o.shipType||'NORMAL';
   document.getElementById('f_logistics').value = o.logistics||'MTC';
   document.getElementById('f_pending').checked = !!o.pending;
+  document.getElementById('f_pending').disabled = false;
   document.getElementById('f_preparing').checked = !!o.preparing;
+  document.getElementById('f_preparing').disabled = false;
   document.getElementById('f_ready').checked = !!o.ready;
+  document.getElementById('f_ready').disabled = false;
   document.getElementById('f_dispatched').checked = !!o.dispatched;
+  document.getElementById('f_dispatched').disabled = false;
+  document.getElementById('stageHint').style.display = 'none';
   document.getElementById('f_onTime').value = o.onTime===true||o.onTime==='true'?'true':o.onTime===false||o.onTime==='false'?'false':'';
   document.getElementById('f_beforeTime').value = o.beforeTime===true||o.beforeTime==='true'?'true':o.beforeTime===false||o.beforeTime==='false'?'false':'';
   document.getElementById('f_delayReason').value = o.delayReason||'';
