@@ -406,6 +406,13 @@
 
   <!-- Dashboard View -->
   <div id="dashboardView">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <label style="font-weight:600;color:var(--navy);font-size:14px">Filter by Hub:</label>
+      <select id="dashFilterHub" onchange="renderDashboard()" style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:160px">
+        <option value="">All Hubs</option>
+      </select>
+      <button id="manageHubsBtn" class="btn btn-outline" style="display:none;font-size:13px;padding:6px 14px" onclick="openManageHubs()">⚙ Manage Hubs</button>
+    </div>
     <div class="stat-row" id="dashStatRow"></div>
     <div class="dash-grid">
       <div class="dash-card"><h3>Order Status Distribution</h3><div class="chart-wrap"><canvas id="chartStatus"></canvas></div></div>
@@ -508,6 +515,23 @@
   </div>
 </div>
 
+<!-- Manage Hubs Modal -->
+<div class="modal-overlay" id="manageHubsOverlay">
+  <div class="modal" style="max-width:420px">
+    <h2>Manage Hubs / Warehouses</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Default hubs (WH-001, WH-002, WH-003) cannot be removed. Add your own below.</p>
+    <ul id="hubList" style="list-style:none;padding:0;margin:0 0 16px"></ul>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="newHubInput" placeholder="e.g. WH-004" style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px" maxlength="20"/>
+      <button class="btn btn-primary" onclick="addHub()" style="white-space:nowrap">+ Add Hub</button>
+    </div>
+    <div class="login-err" id="hubModalErr" style="margin-top:6px"></div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-outline" onclick="document.getElementById('manageHubsOverlay').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <span class="lightbox-close" onclick="closeLightbox()">✕</span>
@@ -527,9 +551,6 @@
         <label>Hub / Warehouse</label>
         <select id="f_hub">
           <option value="">— Select Warehouse —</option>
-          <option value="WH-001">WH-001</option>
-          <option value="WH-002">WH-002</option>
-          <option value="WH-003">WH-003</option>
         </select>
       </div>
       <div class="form-group">
@@ -710,7 +731,32 @@
       </div>
       <div class="form-group">
         <label>Delay Reason</label>
-        <input type="text" id="f_delayReason" placeholder="SUPPLY CHAIN, etc."/>
+        <select id="f_delayReason">
+          <option value="">— No Delay —</option>
+          <optgroup label="Supply &amp; Inventory">
+            <option>Supply Chain Delay</option>
+            <option>Out of Stock</option>
+            <option>Incorrect Item Packed</option>
+          </optgroup>
+          <optgroup label="Logistics">
+            <option>Vehicle Breakdown</option>
+            <option>Driver Not Available</option>
+            <option>Wrong Address</option>
+            <option>Customer Not Available</option>
+            <option>Traffic / Road Closure</option>
+          </optgroup>
+          <optgroup label="Operations">
+            <option>Late Order Preparation</option>
+            <option>Awaiting Approval</option>
+            <option>System Error</option>
+          </optgroup>
+          <optgroup label="External">
+            <option>Weather Conditions</option>
+            <option>Public Holiday</option>
+            <option>Customs Hold</option>
+          </optgroup>
+          <option>Other</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Error Type</label>
@@ -801,6 +847,7 @@ async function fbWrite(path, data) {
 let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
 let activeMonth = null;
 let editingId = null;
+let customHubs = []; // extra hubs added by admin beyond WH-001/002/003
 let sortCol = 'date';
 let sortDir = 'desc';
 
@@ -889,6 +936,8 @@ function applyUserUI() {
   document.getElementById('userRoleDisplay').textContent = currentUser.role.charAt(0).toUpperCase()+currentUser.role.slice(1);
   // Hide manage users for non-admin
   document.getElementById('manageUsersLink').style.display = currentUser.role === 'admin' ? '' : 'none';
+  const mhb = document.getElementById('manageHubsBtn');
+  if(mhb) mhb.style.display = currentUser.role === 'admin' ? '' : 'none';
   // Viewer: hide add/edit/delete
   const editable = currentUser.role !== 'viewer';
   ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
@@ -901,6 +950,75 @@ function canEdit() {
 
 function toggleUserMenu() {
   document.getElementById('userDropdown').classList.toggle('open');
+}
+
+// ── Hub management ──
+const BASE_HUBS = ['WH-001','WH-002','WH-003'];
+function getHubs() { return [...BASE_HUBS, ...customHubs]; }
+
+function populateHubDropdowns() {
+  const hubs = getHubs();
+  // f_hub in order modal
+  const fhub = document.getElementById('f_hub');
+  const fval = fhub ? fhub.value : '';
+  if(fhub) fhub.innerHTML = '<option value="">— Select Warehouse —</option>' + hubs.map(h=>`<option value="${h}"${h===fval?' selected':''}>${h}</option>`).join('');
+  // filterHub in table toolbar
+  const thub = document.getElementById('filterHub');
+  const tval = thub ? thub.value : '';
+  if(thub) thub.innerHTML = '<option value="">All Hubs</option>' + hubs.map(h=>`<option${h===tval?' selected':''}>${h}</option>`).join('');
+  // dashFilterHub in dashboard
+  const dhub = document.getElementById('dashFilterHub');
+  const dval = dhub ? dhub.value : '';
+  if(dhub) dhub.innerHTML = '<option value="">All Hubs</option>' + hubs.map(h=>`<option${h===dval?' selected':''}>${h}</option>`).join('');
+}
+
+async function saveHubs() {
+  localStorage.setItem('wms_hubs', JSON.stringify(customHubs));
+  if(firebaseReady) await fbWrite('/wms_hubs', customHubs.length ? customHubs : null);
+}
+
+function openManageHubs() {
+  document.getElementById('hubModalErr').textContent = '';
+  document.getElementById('newHubInput').value = '';
+  renderHubList();
+  document.getElementById('manageHubsOverlay').classList.add('open');
+}
+
+function renderHubList() {
+  const list = document.getElementById('hubList');
+  const allHubs = getHubs();
+  list.innerHTML = allHubs.map(h => {
+    const isBase = BASE_HUBS.includes(h);
+    return `<li style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:14px;font-weight:600">${h}</span>
+      ${isBase
+        ? '<span style="font-size:11px;color:#9ca3af">Default</span>'
+        : `<button onclick="deleteHub('${h}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;line-height:1" title="Remove">×</button>`}
+    </li>`;
+  }).join('');
+}
+
+async function addHub() {
+  const input = document.getElementById('newHubInput');
+  const err = document.getElementById('hubModalErr');
+  const val = input.value.trim().toUpperCase();
+  err.textContent = '';
+  if(!val) { err.textContent = 'Please enter a hub name.'; return; }
+  if(getHubs().includes(val)) { err.textContent = `"${val}" already exists.`; return; }
+  if(val.length > 20) { err.textContent = 'Hub name too long (max 20 chars).'; return; }
+  customHubs.push(val);
+  await saveHubs();
+  populateHubDropdowns();
+  input.value = '';
+  renderHubList();
+}
+
+async function deleteHub(name) {
+  if(!confirm(`Remove hub "${name}"? Orders assigned to it will keep their data but the hub won't appear in the dropdown.`)) return;
+  customHubs = customHubs.filter(h=>h!==name);
+  await saveHubs();
+  populateHubDropdowns();
+  renderHubList();
 }
 document.addEventListener('click', e => {
   if(!document.getElementById('userChip').contains(e.target))
@@ -1036,9 +1154,10 @@ async function init() {
 
   try {
     // Load data + users from Firebase using REST API
-    const [fbData, fbUsers] = await Promise.all([
+    const [fbData, fbUsers, fbHubs] = await Promise.all([
       fbRead('/wms_data'),
-      fbRead('/wms_users')
+      fbRead('/wms_users'),
+      fbRead('/wms_hubs')
     ]);
     bar.style.width = '70%';
 
@@ -1046,6 +1165,10 @@ async function init() {
     if(fbUsers) {
       const arr = Array.isArray(fbUsers) ? fbUsers : Object.values(fbUsers);
       localStorage.setItem('wms_users', JSON.stringify(arr));
+    }
+    if(fbHubs) {
+      customHubs = Array.isArray(fbHubs) ? fbHubs : Object.values(fbHubs);
+      localStorage.setItem('wms_hubs', JSON.stringify(customHubs));
     }
     firebaseReady = true;
   } catch(e) {
@@ -1092,6 +1215,13 @@ function normalizeStore(raw) {
 }
 
 function initWMS() {
+  // Load custom hubs from localStorage if not already loaded from Firebase
+  if(customHubs.length === 0) {
+    const savedHubs = localStorage.getItem('wms_hubs');
+    if(savedHubs) try { customHubs = JSON.parse(savedHubs); } catch(e) {}
+  }
+  populateHubDropdowns();
+
   // Use store already loaded from Firebase; fall back to localStorage only if empty
   if(!store || Object.keys(store).length === 0) {
     const saved = localStorage.getItem('wms_data');
@@ -1274,11 +1404,7 @@ function refreshCityFilter() {
   sel.innerHTML = `<option value="">All Cities</option>` +
     cities.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
 
-  const hubs = [...new Set(orders().map(o=>o.hub||'').filter(Boolean))].sort();
-  const hsel = document.getElementById('filterHub');
-  const hcur = hsel.value;
-  hsel.innerHTML = `<option value="">All Hubs</option>` +
-    hubs.map(h=>`<option ${h===hcur?'selected':''}>${h}</option>`).join('');
+  populateHubDropdowns();
 }
 
 // ── Table ──
@@ -1677,7 +1803,11 @@ function makeChart(id, type, labels, datasets, extraOpts={}) {
 
 // ── Dashboard render ──
 function renderDashboard() {
-  const all = orders().map(o=>({...o, _status:calcStatus(o), _progress:calcProgress(o), _city:extractCity(o.order||'',o.city||'')}));
+  populateHubDropdowns();
+  const dashHub = (document.getElementById('dashFilterHub')||{}).value || '';
+  const all = orders()
+    .filter(o => !dashHub || (o.hub||'') === dashHub)
+    .map(o=>({...o, _status:calcStatus(o), _progress:calcProgress(o), _city:extractCity(o.order||'',o.city||'')}));
   const total = all.length;
   const completed = all.filter(o=>o._status==='Completed').length;
   const dispatched = all.filter(o=>o.dispatched).length;
@@ -1687,7 +1817,7 @@ function renderDashboard() {
 
   // ── Stat boxes ──
   document.getElementById('dashStatRow').innerHTML = `
-    <div class="stat-box blue"><div class="s-label">Total Orders</div><div class="s-val">${total}</div><div class="s-sub">${activeMonth}</div></div>
+    <div class="stat-box blue"><div class="s-label">Total Orders</div><div class="s-val">${total}</div><div class="s-sub">${dashHub ? dashHub + ' · ' : ''}${activeMonth}</div></div>
     <div class="stat-box green"><div class="s-label">Completed</div><div class="s-val">${completed}</div><div class="s-sub">${total?(completed/total*100).toFixed(0):0}% of total</div></div>
     <div class="stat-box yellow"><div class="s-label">On-Time Rate</div><div class="s-val">${onTimePct}%</div><div class="s-sub">${onTimeCnt} of ${dispatched} dispatched</div></div>
     <div class="stat-box red"><div class="s-label">Delayed</div><div class="s-val">${delayedCnt}</div><div class="s-sub">${dispatched?(delayedCnt/dispatched*100).toFixed(1):0}% delay rate</div></div>
