@@ -60,18 +60,19 @@
   .spacer { flex: 1; }
   main { padding: 22px 28px; max-width: 1700px; margin: 0 auto; }
 
-  /* ── Month tabs ── */
-  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-  .tab-btn { padding: 7px 20px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
-  .tab-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(27,58,107,.25); }
-  .tab-btn:hover:not(.active) { border-color: var(--navy); color: var(--navy); background: var(--navy-lt); }
-  .btn-add-month { padding: 7px 14px; border-radius: 20px; border: 1.5px dashed var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
-  .btn-add-month:hover { border-color: var(--green); color: var(--green); }
+  /* ── Date range bar (replaces month tabs) ── */
+  .date-range-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .date-range-bar input[type=date] { padding: 7px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+  .date-range-bar input[type=date]:focus { outline: none; border-color: var(--navy); }
+  .date-range-bar .dr-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .btn-range { padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
+  .btn-range:hover, .btn-range.active { border-color: var(--navy); color: var(--navy); background: var(--navy-lt); }
 
   /* ── KPI Cards ── */
   .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; margin-bottom: 22px; }
-  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 4px rgba(27,58,107,.07); transition: box-shadow .15s; }
-  .kpi-card:hover { box-shadow: 0 4px 14px rgba(27,58,107,.12); }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 4px rgba(27,58,107,.07); transition: box-shadow .15s, border-color .15s; cursor: pointer; }
+  .kpi-card:hover { box-shadow: 0 4px 14px rgba(27,58,107,.12); outline: 2px solid var(--navy-lt); }
+  .kpi-card.filter-active { border: 2px solid var(--navy); box-shadow: 0 0 0 3px rgba(27,58,107,.15); }
   .kpi-card .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; font-weight: 600; }
   .kpi-card .value { font-size: 26px; font-weight: 800; }
   .kpi-card .sub-val { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -158,10 +159,38 @@
   .form-group textarea { resize: vertical; min-height: 70px; }
   .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
 
-  /* ── Stage checkboxes in modal ── */
-  .stage-checks { display: flex; gap: 16px; flex-wrap: wrap; }
-  .stage-checks label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); cursor: pointer; font-weight: 500; }
-  .stage-checks input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--green); }
+  /* ── Stage stepper in modal ── */
+  .stage-stepper { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; margin-top: 4px; }
+  .step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .step:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: var(--border); z-index: 0; }
+  .step.done:not(:last-child)::after { background: var(--green); }
+  .step-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--muted); z-index: 1; cursor: default; transition: all .2s; }
+  .step.done .step-circle { background: var(--navy); border-color: var(--navy); color: #fff; cursor: pointer; }
+  .step.active .step-circle { border-color: var(--green); color: var(--green); background: var(--green-lt); cursor: pointer; }
+  .step.locked .step-circle { background: var(--surface2); cursor: not-allowed; opacity: .5; }
+  .step-label { font-size: 10px; color: var(--muted); margin-top: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; text-align: center; }
+  .step.done .step-label { color: var(--navy); }
+  .step.active .step-label { color: var(--green); }
+  .pod-hint { display: none; margin-top: 8px; font-size: 12px; color: var(--green2); font-weight: 600; }
+
+  /* ── Chart skeleton ── */
+  .chart-skeleton { height: 240px; border-radius: 8px; background: linear-gradient(90deg, #e8edf6 25%, #f0f4f8 50%, #e8edf6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .chart-skeleton.tall { height: 300px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── Audit trail ── */
+  .audit-trail { font-size: 12px; font-family: 'Consolas','Courier New',monospace; margin-top: 8px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+  .audit-trail li { display: flex; gap: 8px; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  .audit-trail li:last-child { border-bottom: none; }
+  .audit-trail li:nth-child(even) { background: var(--surface2); }
+  .audit-ts { color: var(--muted); white-space: nowrap; }
+  .audit-user { color: var(--navy); font-weight: 600; white-space: nowrap; }
+  .audit-detail { color: var(--text); flex: 1; }
+
+  /* ── Clear filters button ── */
+  .btn-clear-filters { padding: 8px 14px; border-radius: 8px; border: 1.5px solid #f0a0a0; background: #fff5f5; color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; display: none; }
+  .btn-clear-filters:hover { background: #ffe0e0; border-color: var(--red); }
+  .btn-clear-filters.visible { display: inline-flex; align-items: center; gap: 4px; }
 
   /* ── POD ── */
   .pod-link { color: var(--navy); text-decoration: underline; cursor: pointer; font-size: 12px; }
@@ -354,40 +383,47 @@
     <div class="accounts-grid" id="accountsGrid"></div>
   </div>
 
-  <!-- Month Tabs -->
-  <div class="tabs" id="tabs"></div>
+  <!-- Date Range Bar (replaces month tabs) -->
+  <div class="date-range-bar" id="dateRangeBar">
+    <span class="dr-label">Date Range:</span>
+    <input type="date" id="rangeFrom" onchange="applyDateRange(); renderAll()"/>
+    <span class="dr-label">to</span>
+    <input type="date" id="rangeTo" onchange="applyDateRange(); renderAll()"/>
+    <button class="btn-range" onclick="setQuickRange('thisMonth')">This Month</button>
+    <button class="btn-range" onclick="setQuickRange('last30')">Last 30 Days</button>
+    <button class="btn-range" onclick="setQuickRange('last3m')">Last 3 Months</button>
+  </div>
 
   <!-- KPI Cards -->
   <div class="kpi-grid" id="kpiGrid"></div>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <input type="text" id="searchInput" placeholder="Search order, branch, city…" oninput="renderTable()"/>
-    <select id="filterStatus" onchange="renderTable()">
+    <input type="text" id="searchInput" placeholder="Search order, branch, city…" oninput="checkFiltersActive(); renderTable()"/>
+    <select id="filterStatus" onchange="checkFiltersActive(); renderTable()">
       <option value="">All Statuses</option>
       <option>Pending</option>
       <option>In Progress</option>
       <option>Completed</option>
     </select>
-    <select id="filterShipType" onchange="renderTable()">
+    <select id="filterShipType" onchange="checkFiltersActive(); renderTable()">
       <option value="">All Types</option>
       <option>URGENT</option>
       <option>SCHEDULED</option>
       <option>NORMAL</option>
     </select>
-    <select id="filterHub" onchange="renderTable()">
+    <select id="filterHub" onchange="checkFiltersActive(); renderTable()">
       <option value="">All Hubs</option>
     </select>
-    <select id="filterCity" onchange="renderTable()">
+    <select id="filterCity" onchange="checkFiltersActive(); renderTable()">
       <option value="">All Cities</option>
     </select>
-    <select id="filterLogistics" onchange="renderTable()">
+    <select id="filterLogistics" onchange="checkFiltersActive(); renderTable()">
       <option value="">All Logistics</option>
-      <option>MTC</option>
-      <option>UBER</option>
-      <option>SAMSA</option>
-      <option>Others</option>
     </select>
+    <input type="date" id="filterDateFrom" placeholder="From" title="Row date from" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px" onchange="checkFiltersActive(); renderTable()"/>
+    <input type="date" id="filterDateTo" placeholder="To" title="Row date to" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px" onchange="checkFiltersActive(); renderTable()"/>
+    <button class="btn-clear-filters" id="clearFiltersBtn" onclick="clearAllFilters()">✕ Clear</button>
     <select id="sortBy" onchange="renderTable()">
       <option value="date-desc">Sort: Date ↓</option>
       <option value="date-asc">Sort: Date ↑</option>
@@ -412,17 +448,18 @@
         <option value="">All Hubs</option>
       </select>
       <button id="manageHubsBtn" class="btn btn-outline" style="display:none;font-size:13px;padding:6px 14px" onclick="openManageHubs()">⚙ Manage Hubs</button>
+      <button id="manageLogisticsBtn" class="btn btn-outline" style="display:none;font-size:13px;padding:6px 14px" onclick="openManageLogistics()">⚙ Manage Logistics</button>
     </div>
     <div class="stat-row" id="dashStatRow"></div>
     <div class="dash-grid">
-      <div class="dash-card"><h3>Order Status Distribution</h3><div class="chart-wrap"><canvas id="chartStatus"></canvas></div></div>
-      <div class="dash-card"><h3>Shipment Type Breakdown</h3><div class="chart-wrap"><canvas id="chartShipType"></canvas></div></div>
-      <div class="dash-card"><h3>Orders by Hub / Warehouse</h3><div class="chart-wrap tall"><canvas id="chartHub"></canvas></div></div>
-      <div class="dash-card"><h3>Orders by City</h3><div class="chart-wrap tall"><canvas id="chartCity"></canvas></div></div>
-      <div class="dash-card"><h3>Logistics Partner Split</h3><div class="chart-wrap"><canvas id="chartLogistics"></canvas></div></div>
-      <div class="dash-card wide"><h3>Daily Orders Timeline</h3><div class="chart-wrap"><canvas id="chartTimeline"></canvas></div></div>
-      <div class="dash-card"><h3>On-Time vs Delayed</h3><div class="chart-wrap"><canvas id="chartOnTime"></canvas></div></div>
-      <div class="dash-card"><h3>Delay Reasons</h3><div class="chart-wrap"><canvas id="chartDelayReasons"></canvas></div></div>
+      <div class="dash-card" data-chart="chartStatus"><h3>Order Status Distribution</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartStatus"></div><canvas id="chartStatus" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartShipType"><h3>Shipment Type Breakdown</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartShipType"></div><canvas id="chartShipType" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartHub"><h3>Orders by Hub / Warehouse</h3><div class="chart-wrap tall"><div class="chart-skeleton tall" id="skelChartHub"></div><canvas id="chartHub" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartCity"><h3>Orders by City</h3><div class="chart-wrap tall"><div class="chart-skeleton tall" id="skelChartCity"></div><canvas id="chartCity" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartLogistics"><h3>Logistics Partner Split</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartLogistics"></div><canvas id="chartLogistics" style="display:none"></canvas></div></div>
+      <div class="dash-card wide" data-chart="chartTimeline"><h3>Daily Orders Timeline</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartTimeline"></div><canvas id="chartTimeline" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartOnTime"><h3>On-Time vs Delayed</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartOnTime"></div><canvas id="chartOnTime" style="display:none"></canvas></div></div>
+      <div class="dash-card" data-chart="chartDelayReasons"><h3>Delay Reasons</h3><div class="chart-wrap"><div class="chart-skeleton" id="skelChartDelayReasons"></div><canvas id="chartDelayReasons" style="display:none"></canvas></div></div>
       <div class="dash-card"><h3>Recent Activity</h3><ul class="feed" id="activityFeed"></ul></div>
     </div>
   </div>
@@ -528,6 +565,23 @@
     <div class="login-err" id="hubModalErr" style="margin-top:6px"></div>
     <div class="modal-footer" style="margin-top:16px">
       <button class="btn btn-outline" onclick="document.getElementById('manageHubsOverlay').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Logistics Modal -->
+<div class="modal-overlay" id="manageLogisticsOverlay">
+  <div class="modal" style="max-width:420px">
+    <h2>Manage Logistics Partners</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Default partners (MTC, UBER, SAMSA, Others) cannot be removed. Add your own below.</p>
+    <ul id="logisticsList" style="list-style:none;padding:0;margin:0 0 16px"></ul>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="newLogisticsInput" placeholder="e.g. DHL" style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px" maxlength="20"/>
+      <button class="btn btn-primary" onclick="addLogistic()" style="white-space:nowrap">+ Add</button>
+    </div>
+    <div class="login-err" id="logisticsModalErr" style="margin-top:6px"></div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-outline" onclick="document.getElementById('manageLogisticsOverlay').classList.remove('open')">Close</button>
     </div>
   </div>
 </div>
@@ -705,13 +759,30 @@
       </div>
       <div class="form-group full">
         <label>Stages</label>
-        <div class="stage-checks">
-          <label><input type="checkbox" id="f_pending"/> Pending</label>
-          <label><input type="checkbox" id="f_preparing"/> Preparing</label>
-          <label><input type="checkbox" id="f_ready"/> Ready</label>
-          <label><input type="checkbox" id="f_dispatched"/> Dispatched</label>
+        <!-- Hidden checkboxes for JS compatibility -->
+        <input type="checkbox" id="f_pending" style="display:none"/>
+        <input type="checkbox" id="f_preparing" style="display:none"/>
+        <input type="checkbox" id="f_ready" style="display:none"/>
+        <input type="checkbox" id="f_dispatched" style="display:none"/>
+        <div class="stage-stepper" id="stageStepper">
+          <div class="step locked" id="step_pending" onclick="stepperClick('pending')">
+            <div class="step-circle">①</div>
+            <div class="step-label">Pending</div>
+          </div>
+          <div class="step locked" id="step_preparing" onclick="stepperClick('preparing')">
+            <div class="step-circle">②</div>
+            <div class="step-label">Preparing</div>
+          </div>
+          <div class="step locked" id="step_ready" onclick="stepperClick('ready')">
+            <div class="step-circle">③</div>
+            <div class="step-label">Ready</div>
+          </div>
+          <div class="step locked" id="step_dispatched" onclick="stepperClick('dispatched')">
+            <div class="step-circle">④</div>
+            <div class="step-label">Dispatched</div>
+          </div>
         </div>
-        <div id="stageHint" class="hint" style="display:none;margin-top:6px;font-size:12px;color:#666">New orders start as Pending — progress through stages from the table.</div>
+        <div id="podHint" class="pod-hint">✓ Ready to mark as Completed</div>
       </div>
       <div class="form-group">
         <label>Dispatched On Time</label>
@@ -793,8 +864,8 @@
         </select>
       </div>
       <div class="form-group full">
-        <label>POD — Proof of Dispatched (Image or URL/Reference)</label>
-        <input type="text" id="f_pod" placeholder="https://… or POD-REF-001"/>
+        <label>POD — Proof of Delivery (Image or URL/Reference)</label>
+        <input type="text" id="f_pod" placeholder="https://… or POD-REF-001" oninput="updateStepper()"/>
         <div class="pod-upload-zone" id="podDropZone" onclick="document.getElementById('podImageInput').click()" ondragover="podDragOver(event)" ondragleave="podDragLeave(event)" ondrop="podDrop(event)">
           <div style="font-size:28px">📷</div>
           <p>Click or drag & drop an image<br>(JPG, PNG, WEBP)</p>
@@ -845,9 +916,11 @@ async function fbWrite(path, data) {
 
 // ── Data store ──
 let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
-let activeMonth = null;
+let activeMonth = null; // still used as write-target for new orders
+let filteredOrders = []; // flat array from applyDateRange()
 let editingId = null;
 let customHubs = []; // extra hubs added by admin beyond WH-001/002/003
+let customLogistics = []; // extra logistics added by admin
 let sortCol = 'date';
 let sortDir = 'desc';
 
@@ -938,6 +1011,8 @@ function applyUserUI() {
   document.getElementById('manageUsersLink').style.display = currentUser.role === 'admin' ? '' : 'none';
   const mhb = document.getElementById('manageHubsBtn');
   if(mhb) mhb.style.display = currentUser.role === 'admin' ? '' : 'none';
+  const mlb = document.getElementById('manageLogisticsBtn');
+  if(mlb) mlb.style.display = currentUser.role === 'admin' ? '' : 'none';
   // Viewer: hide add/edit/delete
   const editable = currentUser.role !== 'viewer';
   ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
@@ -955,6 +1030,8 @@ function toggleUserMenu() {
 // ── Hub management ──
 const BASE_HUBS = ['WH-001','WH-002','WH-003'];
 function getHubs() { return [...BASE_HUBS, ...customHubs]; }
+const BASE_LOGISTICS = ['MTC','UBER','SAMSA','Others'];
+function getLogistics() { return [...BASE_LOGISTICS, ...customLogistics]; }
 
 function populateHubDropdowns() {
   const hubs = getHubs();
@@ -972,9 +1049,68 @@ function populateHubDropdowns() {
   if(dhub) dhub.innerHTML = '<option value="">All Hubs</option>' + hubs.map(h=>`<option${h===dval?' selected':''}>${h}</option>`).join('');
 }
 
+function populateLogisticsDropdowns() {
+  const logistics = getLogistics();
+  const flog = document.getElementById('f_logistics');
+  const fval = flog ? flog.value : '';
+  if(flog) flog.innerHTML = logistics.map(l=>`<option value="${l}"${l===fval?' selected':''}>${l}</option>`).join('');
+  const tlog = document.getElementById('filterLogistics');
+  const tval = tlog ? tlog.value : '';
+  if(tlog) tlog.innerHTML = '<option value="">All Logistics</option>' + logistics.map(l=>`<option${l===tval?' selected':''}>${l}</option>`).join('');
+}
+
 async function saveHubs() {
   localStorage.setItem('wms_hubs', JSON.stringify(customHubs));
   if(firebaseReady) await fbWrite('/wms_hubs', customHubs.length ? customHubs : null);
+}
+
+async function saveLogistics() {
+  localStorage.setItem('wms_logistics', JSON.stringify(customLogistics));
+  if(firebaseReady) await fbWrite('/wms_logistics', customLogistics.length ? customLogistics : null);
+}
+
+function openManageLogistics() {
+  document.getElementById('logisticsModalErr').textContent = '';
+  document.getElementById('newLogisticsInput').value = '';
+  renderLogisticsList();
+  document.getElementById('manageLogisticsOverlay').classList.add('open');
+}
+
+function renderLogisticsList() {
+  const list = document.getElementById('logisticsList');
+  const all = getLogistics();
+  list.innerHTML = all.map(l => {
+    const isBase = BASE_LOGISTICS.includes(l);
+    return `<li style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:14px;font-weight:600">${l}</span>
+      ${isBase
+        ? '<span style="font-size:11px;color:#9ca3af">Default</span>'
+        : `<button onclick="deleteLogistic('${l}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;line-height:1" title="Remove">×</button>`}
+    </li>`;
+  }).join('');
+}
+
+async function addLogistic() {
+  const input = document.getElementById('newLogisticsInput');
+  const err = document.getElementById('logisticsModalErr');
+  const val = input.value.trim().toUpperCase();
+  err.textContent = '';
+  if(!val) { err.textContent = 'Please enter a logistics partner name.'; return; }
+  if(getLogistics().includes(val)) { err.textContent = `"${val}" already exists.`; return; }
+  if(val.length > 20) { err.textContent = 'Name too long (max 20 chars).'; return; }
+  customLogistics.push(val);
+  await saveLogistics();
+  populateLogisticsDropdowns();
+  input.value = '';
+  renderLogisticsList();
+}
+
+async function deleteLogistic(name) {
+  if(!confirm(`Remove logistics partner "${name}"?`)) return;
+  customLogistics = customLogistics.filter(l=>l!==name);
+  await saveLogistics();
+  populateLogisticsDropdowns();
+  renderLogisticsList();
 }
 
 function openManageHubs() {
@@ -1029,7 +1165,7 @@ document.addEventListener('click', e => {
 function showView(view) {
   document.getElementById('accountsPanel').style.display = view === 'accounts' ? 'block' : 'none';
   const wmsVisible = view === 'wms';
-  document.getElementById('tabs').style.display    = wmsVisible ? '' : 'none';
+  document.getElementById('dateRangeBar').style.display = wmsVisible ? '' : 'none';
   document.getElementById('kpiGrid').style.display = wmsVisible ? '' : 'none';
   document.querySelector('.toolbar').style.display = wmsVisible ? '' : 'none';
   if(wmsVisible) {
@@ -1154,10 +1290,11 @@ async function init() {
 
   try {
     // Load data + users from Firebase using REST API
-    const [fbData, fbUsers, fbHubs] = await Promise.all([
+    const [fbData, fbUsers, fbHubs, fbLogistics] = await Promise.all([
       fbRead('/wms_data'),
       fbRead('/wms_users'),
-      fbRead('/wms_hubs')
+      fbRead('/wms_hubs'),
+      fbRead('/wms_logistics')
     ]);
     bar.style.width = '70%';
 
@@ -1169,6 +1306,10 @@ async function init() {
     if(fbHubs) {
       customHubs = Array.isArray(fbHubs) ? fbHubs : Object.values(fbHubs);
       localStorage.setItem('wms_hubs', JSON.stringify(customHubs));
+    }
+    if(fbLogistics) {
+      customLogistics = Array.isArray(fbLogistics) ? fbLogistics : Object.values(fbLogistics);
+      localStorage.setItem('wms_logistics', JSON.stringify(customLogistics));
     }
     firebaseReady = true;
   } catch(e) {
@@ -1220,7 +1361,13 @@ function initWMS() {
     const savedHubs = localStorage.getItem('wms_hubs');
     if(savedHubs) try { customHubs = JSON.parse(savedHubs); } catch(e) {}
   }
+  // Load custom logistics from localStorage if not already loaded from Firebase
+  if(customLogistics.length === 0) {
+    const savedLogistics = localStorage.getItem('wms_logistics');
+    if(savedLogistics) try { customLogistics = JSON.parse(savedLogistics); } catch(e) {}
+  }
   populateHubDropdowns();
+  populateLogisticsDropdowns();
 
   // Use store already loaded from Firebase; fall back to localStorage only if empty
   if(!store || Object.keys(store).length === 0) {
@@ -1235,7 +1382,12 @@ function initWMS() {
   // Ensure all months are arrays
   Object.keys(store).forEach(m => { if(!Array.isArray(store[m])) store[m] = []; });
   activeMonth = Object.keys(store)[0];
-  renderTabs();
+  // Initialize date range picker to first of current month → today
+  const today = new Date();
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  document.getElementById('rangeFrom').value = firstOfMonth.toISOString().slice(0,10);
+  document.getElementById('rangeTo').value = today.toISOString().slice(0,10);
+  applyDateRange();
   renderAll();
 }
 
@@ -1288,29 +1440,76 @@ function startRealtimeSync() {
   }, 15000);
 }
 
-// ── Tabs ──
-function renderTabs() {
-  const el = document.getElementById('tabs');
-  el.innerHTML = Object.keys(store).map(m =>
-    `<button class="tab-btn ${m===activeMonth?'active':''}" onclick="switchMonth('${m}')">${m}</button>`
-  ).join('') +
-  `<button class="btn-add-month" onclick="addMonth()">+ Add Month</button>`;
+// ── Date range ──
+function applyDateRange() {
+  const from = document.getElementById('rangeFrom').value;
+  const to = document.getElementById('rangeTo').value;
+  const fromTs = from ? new Date(from).getTime() : 0;
+  const toTs = to ? new Date(to).getTime() + 86399999 : Infinity; // end of day
+  filteredOrders = [];
+  Object.keys(store).forEach(month => {
+    (store[month] || []).forEach(o => {
+      const oTs = o.date ? new Date(o.date).getTime() : 0;
+      if(oTs >= fromTs && oTs <= toTs) filteredOrders.push(o);
+    });
+  });
 }
 
-function switchMonth(m) { activeMonth = m; renderTabs(); renderAll(); }
-
-function addMonth() {
-  const name = prompt('Month name (e.g. Jul 2026):');
-  if(!name || store[name]) return;
-  store[name] = [];
-  save();
-  activeMonth = name;
-  renderTabs();
+function setQuickRange(preset) {
+  const today = new Date();
+  let from, to = today.toISOString().slice(0,10);
+  if(preset === 'thisMonth') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  } else if(preset === 'last30') {
+    const d = new Date(today); d.setDate(d.getDate()-30);
+    from = d.toISOString().slice(0,10);
+  } else if(preset === 'last3m') {
+    const d = new Date(today); d.setMonth(d.getMonth()-3);
+    from = d.toISOString().slice(0,10);
+  }
+  document.getElementById('rangeFrom').value = from;
+  document.getElementById('rangeTo').value = to;
+  applyDateRange();
   renderAll();
 }
 
 // ── Orders ──
-function orders() { return store[activeMonth] || []; }
+function orders() { return filteredOrders; }
+
+// ── Derive month key from date ──
+function monthFromDate(dateStr) {
+  if(!dateStr) return activeMonth;
+  const d = new Date(dateStr);
+  if(isNaN(d)) return activeMonth;
+  return MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function checkFiltersActive() {
+  const search = document.getElementById('searchInput').value;
+  const fs = document.getElementById('filterStatus').value;
+  const ft = document.getElementById('filterShipType').value;
+  const fhub = document.getElementById('filterHub').value;
+  const fc = document.getElementById('filterCity').value;
+  const fl = document.getElementById('filterLogistics').value;
+  const fdf = document.getElementById('filterDateFrom').value;
+  const fdt = document.getElementById('filterDateTo').value;
+  const active = !!(search || fs || ft || fhub || fc || fl || fdf || fdt);
+  const btn = document.getElementById('clearFiltersBtn');
+  if(btn) btn.classList.toggle('visible', active);
+}
+
+function clearAllFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterShipType').value = '';
+  document.getElementById('filterHub').value = '';
+  document.getElementById('filterCity').value = '';
+  document.getElementById('filterLogistics').value = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  checkFiltersActive();
+  renderTable();
+}
 
 function filteredSorted() {
   const search = document.getElementById('searchInput').value.toLowerCase();
@@ -1319,6 +1518,10 @@ function filteredSorted() {
   const fhub = document.getElementById('filterHub').value;
   const fc = document.getElementById('filterCity').value;
   const fl = document.getElementById('filterLogistics').value;
+  const fdf = document.getElementById('filterDateFrom').value;
+  const fdt = document.getElementById('filterDateTo').value;
+  const fdfTs = fdf ? new Date(fdf).getTime() : 0;
+  const fdtTs = fdt ? new Date(fdt).getTime() + 86399999 : Infinity;
   const sortSel = document.getElementById('sortBy').value;
 
   let rows = orders().map(o => ({
@@ -1340,6 +1543,10 @@ function filteredSorted() {
   if(fhub) rows = rows.filter(o => (o.hub||'') === fhub);
   if(fc) rows = rows.filter(o => o._city === fc);
   if(fl) rows = rows.filter(o => o.logistics === fl);
+  if(fdf || fdt) rows = rows.filter(o => {
+    const ts = o.date ? new Date(o.date).getTime() : 0;
+    return ts >= fdfTs && ts <= fdtTs;
+  });
 
   // Sort
   const [sc, sd] = sortSel.split('-');
@@ -1380,22 +1587,50 @@ function renderKPIs() {
   const scheduled = all.filter(o=>o.shipType==='SCHEDULED').length;
   const normal = all.filter(o=>o.shipType==='NORMAL').length;
 
+  const curStatus = document.getElementById('filterStatus').value;
+  const curShipType = document.getElementById('filterShipType').value;
+
+  function kpiCard(label, valHtml, subHtml, filterKey, filterVal, colorClass) {
+    const isActive = filterKey === 'status' ? curStatus === filterVal : curShipType === filterVal;
+    return `<div class="kpi-card${isActive?' filter-active':''}" onclick="kpiFilter('${filterKey}','${filterVal}')">
+      <div class="label">${label}</div>
+      <div class="value ${colorClass||''}">${valHtml}</div>
+      ${subHtml ? `<div class="sub-val">${subHtml}</div>` : ''}
+    </div>`;
+  }
+
+  // Row 1: Status KPIs + Errors
+  // Row 2: By Shipment Type
   document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi-card"><div class="label">Total Orders</div><div class="value c-blue">${total}</div></div>
-    <div class="kpi-card"><div class="label">Completed</div><div class="value c-green">${completed}</div><div class="sub-val">${total?(completed/total*100).toFixed(0):0}%</div></div>
-    <div class="kpi-card"><div class="label">In Progress</div><div class="value c-yellow">${inProg}</div></div>
-    <div class="kpi-card"><div class="label">Pending</div><div class="value c-orange">${pending}</div></div>
+    <div style="grid-column:1/-1;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:-4px">Overview</div>
+    ${kpiCard('Total Orders', total, '', 'status', '', 'c-blue')}
+    ${kpiCard('Completed', completed, total?(completed/total*100).toFixed(0)+'%':'', 'status', 'Completed', 'c-green')}
+    ${kpiCard('In Progress', inProg, '', 'status', 'In Progress', 'c-yellow')}
+    ${kpiCard('Pending', pending, '', 'status', 'Pending', 'c-orange')}
+    ${kpiCard('Errors', withError, '', 'status', '', 'c-red')}
     <div class="kpi-card"><div class="label">Avg Progress</div><div class="value c-blue">${avgProg}%</div></div>
     <div class="kpi-card"><div class="label">On Time %</div><div class="value c-green">${onTimePct}${typeof onTimePct==='string'&&onTimePct!=='—'?'%':''}</div></div>
     <div class="kpi-card"><div class="label">OTIF %</div><div class="value c-purple">${otif}${typeof otif==='string'&&otif!=='—'?'%':''}</div></div>
     <div class="kpi-card"><div class="label">Delay %</div><div class="value c-red">${delayPct}${typeof delayPct==='string'&&delayPct!=='—'?'%':''}</div></div>
-    <div class="kpi-card"><div class="label">Urgent</div><div class="value c-red">${urgent}</div></div>
-    <div class="kpi-card"><div class="label">Scheduled</div><div class="value c-yellow">${scheduled}</div></div>
-    <div class="kpi-card"><div class="label">Normal</div><div class="value c-green">${normal}</div></div>
-    <div class="kpi-card"><div class="label">Errors</div><div class="value c-red">${withError}</div></div>
+    <div style="grid-column:1/-1;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:-4px;margin-top:6px">By Shipment Type</div>
+    ${kpiCard('Urgent', urgent, '', 'shipType', 'URGENT', 'c-red')}
+    ${kpiCard('Scheduled', scheduled, '', 'shipType', 'SCHEDULED', 'c-yellow')}
+    ${kpiCard('Normal', normal, '', 'shipType', 'NORMAL', 'c-green')}
   `;
 }
 
+function kpiFilter(key, val) {
+  if(key === 'status') {
+    const el = document.getElementById('filterStatus');
+    if(el) { el.value = el.value === val ? '' : val; }
+  } else if(key === 'shipType') {
+    const el = document.getElementById('filterShipType');
+    if(el) { el.value = el.value === val ? '' : val; }
+  }
+  if(val) { setView('table'); }
+  checkFiltersActive();
+  renderAll();
+}
 // ── City filter dropdown ──
 function refreshCityFilter() {
   const cities = [...new Set(orders().map(o=>extractCity(o.order||'',o.city||'')))].sort();
@@ -1421,11 +1656,18 @@ function renderTable() {
     const prog = o._progress;
     const badgeCls = status==='Completed'?'badge-completed':status==='In Progress'?'badge-inprogress':'badge-pending';
     const shipCls = o.shipType==='URGENT'?'ship-urgent':o.shipType==='SCHEDULED'?'ship-scheduled':'ship-normal';
-    const stageDots = stages.map((s,si)=>
-      `<button class="stage-btn ${o[s]?'done':''}" onclick="toggleStage('${o.id}','${s}')" title="Click to toggle ${stageLabels[si]}">
-        <span class="dot"></span>${stageLabels[si]}
-      </button>`
-    ).join('');
+    // Find current (latest done) stage and progress count
+    const doneCount = stages.filter(s=>o[s]).length;
+    const lastDoneIdx = stages.reduce((acc, s, si) => o[s] ? si : acc, -1);
+    const currentStageName = lastDoneIdx >= 0 ? stageLabels[lastDoneIdx] : 'None';
+    const nextStageIdx = lastDoneIdx < stages.length - 1 ? lastDoneIdx + 1 : -1;
+    const stageDots = `<div class="stages" style="gap:6px">
+      <button class="stage-btn ${lastDoneIdx>=0?'done':''}" onclick="toggleStage('${o.id}','${lastDoneIdx>=0?stages[lastDoneIdx]:stages[0]}')" title="Current: ${currentStageName}. Click to toggle">
+        <span class="dot"></span>${currentStageName}
+      </button>
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">${doneCount}/4</span>
+      ${nextStageIdx>=0 ? `<button class="stage-btn" onclick="toggleStage('${o.id}','${stages[nextStageIdx]}')" title="Advance to ${stageLabels[nextStageIdx]}" style="border-style:dashed;font-size:10px">→${stageLabels[nextStageIdx]}</button>` : ''}
+    </div>`;
     const podHtml = o.podImage
       ? `<img class="pod-thumb" src="${o.podImage}" alt="POD" onclick="openLightbox('${o.id}')" title="Click to view"/>`
       : o.pod
@@ -1459,7 +1701,7 @@ function renderTable() {
   }).join('');
 }
 
-function renderAll() { renderKPIs(); renderTable(); }
+function renderAll() { applyDateRange(); renderKPIs(); renderTable(); }
 
 // ── Sort column click ──
 function cycleSortCol(col) {
@@ -1471,20 +1713,55 @@ function cycleSortCol(col) {
 }
 
 // ── Modal ──
+// ── Stage stepper logic ──
+const STAGE_ORDER = ['pending','preparing','ready','dispatched'];
+
+function updateStepper() {
+  STAGE_ORDER.forEach((s, i) => {
+    const checked = document.getElementById('f_'+s).checked;
+    const stepEl = document.getElementById('step_'+s);
+    const prevChecked = i === 0 ? true : document.getElementById('f_'+STAGE_ORDER[i-1]).checked;
+    stepEl.className = 'step ' + (checked ? 'done' : prevChecked ? 'active' : 'locked');
+  });
+  // Show POD hint if dispatched and pod non-empty
+  const dispatched = document.getElementById('f_dispatched').checked;
+  const pod = document.getElementById('f_pod').value.trim();
+  const hint = document.getElementById('podHint');
+  if(hint) hint.style.display = dispatched && pod ? 'block' : 'none';
+}
+
+function stepperClick(stage) {
+  const idx = STAGE_ORDER.indexOf(stage);
+  const el = document.getElementById('f_'+stage);
+  const stepEl = document.getElementById('step_'+stage);
+  // Locked steps do nothing
+  if(stepEl.classList.contains('locked')) return;
+  // Toggle: if currently done, un-check this and all subsequent
+  if(el.checked) {
+    // Uncheck this and all after
+    for(let i = idx; i < STAGE_ORDER.length; i++) {
+      document.getElementById('f_'+STAGE_ORDER[i]).checked = false;
+    }
+  } else {
+    // Check this and all before
+    for(let i = 0; i <= idx; i++) {
+      document.getElementById('f_'+STAGE_ORDER[i]).checked = true;
+    }
+  }
+  updateStepper();
+}
+
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'New Order';
   clearForm();
   document.getElementById('f_date').value = new Date().toISOString().slice(0,10);
+  // New orders: pending forced on, others locked (stepper)
   document.getElementById('f_pending').checked = true;
-  document.getElementById('f_pending').disabled = true;
   document.getElementById('f_preparing').checked = false;
-  document.getElementById('f_preparing').disabled = true;
   document.getElementById('f_ready').checked = false;
-  document.getElementById('f_ready').disabled = true;
   document.getElementById('f_dispatched').checked = false;
-  document.getElementById('f_dispatched').disabled = true;
-  document.getElementById('stageHint').style.display = 'block';
+  updateStepper();
   document.getElementById('modalOverlay').classList.add('open');
 }
 
@@ -1501,14 +1778,10 @@ function openEditModal(id) {
   document.getElementById('f_shipType').value = o.shipType||'NORMAL';
   document.getElementById('f_logistics').value = o.logistics||'MTC';
   document.getElementById('f_pending').checked = !!o.pending;
-  document.getElementById('f_pending').disabled = false;
   document.getElementById('f_preparing').checked = !!o.preparing;
-  document.getElementById('f_preparing').disabled = false;
   document.getElementById('f_ready').checked = !!o.ready;
-  document.getElementById('f_ready').disabled = false;
   document.getElementById('f_dispatched').checked = !!o.dispatched;
-  document.getElementById('f_dispatched').disabled = false;
-  document.getElementById('stageHint').style.display = 'none';
+  updateStepper();
   document.getElementById('f_onTime').value = o.onTime===true||o.onTime==='true'?'true':o.onTime===false||o.onTime==='false'?'false':'';
   document.getElementById('f_beforeTime').value = o.beforeTime===true||o.beforeTime==='true'?'true':o.beforeTime===false||o.beforeTime==='false'?'false':'';
   document.getElementById('f_delayReason').value = o.delayReason||'';
@@ -1516,10 +1789,35 @@ function openEditModal(id) {
   document.getElementById('f_pod').value = o.pod||'';
   document.getElementById('f_notes').value = o.notes||'';
   if(o.podImage) { setPodImagePreview(o.podImage); } else { clearPodImage(); }
+  // Render audit trail
+  const activity = o.activity || [];
+  let auditHtml = '';
+  if(activity.length) {
+    const entries = [...activity].reverse().map(e => {
+      const dt = new Date(e.ts);
+      const ts = dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      return `<li><span class="audit-ts">${ts}</span><span class="audit-user">${e.user||'?'}</span><span class="audit-detail">${e.detail||e.action}</span></li>`;
+    }).join('');
+    auditHtml = `<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12px;color:var(--navy);font-weight:600">📋 History (${activity.length} entries)</summary><ul class="audit-trail">${entries}</ul></details>`;
+  }
+  // Remove existing audit element if any
+  const existingAudit = document.getElementById('orderAuditTrail');
+  if(existingAudit) existingAudit.remove();
+  if(auditHtml) {
+    const div = document.createElement('div');
+    div.id = 'orderAuditTrail';
+    div.innerHTML = auditHtml;
+    document.querySelector('#modalOverlay .modal-footer').before(div);
+  }
   document.getElementById('modalOverlay').classList.add('open');
 }
 
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId=null; }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+  const auditEl = document.getElementById('orderAuditTrail');
+  if(auditEl) auditEl.remove();
+}
 
 let currentPodImage = '';
 
@@ -1532,6 +1830,7 @@ function clearForm() {
   document.getElementById('f_beforeTime').value='';
   ['f_pending','f_preparing','f_ready','f_dispatched'].forEach(id=>document.getElementById(id).checked=false);
   clearPodImage();
+  if(typeof updateStepper === 'function') updateStepper();
 }
 
 function clearPodImage() {
@@ -1580,12 +1879,19 @@ function openLightbox(id) {
 function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
 
 function saveOrder() {
+  const dateVal = document.getElementById('f_date').value;
+  const targetMonth = monthFromDate(dateVal) || activeMonth;
+  const isNew = !editingId;
+  const now = Date.now();
+  const userName = currentUser ? currentUser.name : 'Unknown';
+
+  // Build new order object
   const o = {
     id: editingId || uid(),
     order: document.getElementById('f_order').value.trim(),
     hub: document.getElementById('f_hub').value,
     city: document.getElementById('f_city').value,
-    date: document.getElementById('f_date').value,
+    date: dateVal,
     shipDate: document.getElementById('f_shipDate').value,
     shipType: document.getElementById('f_shipType').value,
     logistics: document.getElementById('f_logistics').value,
@@ -1600,45 +1906,94 @@ function saveOrder() {
     pod: document.getElementById('f_pod').value.trim(),
     podImage: currentPodImage || '',
     notes: document.getElementById('f_notes').value.trim(),
+    activity: [],
   };
   if(!o.order) { alert('Order No & Branch is required.'); return; }
-  // Guard: ensure month array exists
-  if(!store[activeMonth]) store[activeMonth] = [];
-  const list = store[activeMonth];
-  if(editingId) {
-    const idx = list.findIndex(x=>x.id===editingId);
-    if(idx>=0) list[idx]=o; else list.push(o);
+
+  if(isNew) {
+    o.activity = [{ ts: now, user: userName, action: 'created', detail: 'Order created' }];
+    // Ensure target month exists
+    if(!store[targetMonth]) store[targetMonth] = [];
+    store[targetMonth].push(o);
   } else {
-    list.push(o);
+    // Find existing order across all months
+    let found = false;
+    for(const month of Object.keys(store)) {
+      const idx = store[month].findIndex(x => x.id === editingId);
+      if(idx >= 0) {
+        const old = store[month][idx];
+        // Compute changed fields
+        const changed = [];
+        ['order','hub','city','date','shipDate','shipType','logistics','pending','preparing','ready','dispatched','onTime','beforeTime','delayReason','errorType','pod','notes'].forEach(f => {
+          if(String(old[f]||'') !== String(o[f]||'')) changed.push(f);
+        });
+        o.activity = [...(old.activity || [])];
+        if(changed.length) {
+          o.activity.push({ ts: now, user: userName, action: 'edited', detail: 'Changed: ' + changed.join(', ') });
+        }
+        // If date changed, move to correct month
+        if(targetMonth !== month) {
+          store[month].splice(idx, 1);
+          if(!store[targetMonth]) store[targetMonth] = [];
+          store[targetMonth].push(o);
+        } else {
+          store[month][idx] = o;
+        }
+        found = true;
+        break;
+      }
+    }
+    if(!found) {
+      o.activity = [{ ts: now, user: userName, action: 'created', detail: 'Order created' }];
+      if(!store[targetMonth]) store[targetMonth] = [];
+      store[targetMonth].push(o);
+    }
   }
+
+  // Update activeMonth to match order's month
+  activeMonth = targetMonth;
   save();
   closeModal();
-  // Clear all filters so the new/edited order is always visible
-  document.getElementById('searchInput').value = '';
-  document.getElementById('filterStatus').value = '';
-  document.getElementById('filterShipType').value = '';
-  document.getElementById('filterHub').value = '';
-  document.getElementById('filterCity').value = '';
-  document.getElementById('filterLogistics').value = '';
+  clearAllFilters();
   // Always switch to table view to show the result
+  applyDateRange();
   setView('table');
   renderAll();
 }
 
 function toggleStage(id, stage) {
-  if(!store[activeMonth]) return;
-  const o = store[activeMonth].find(x => x.id === id);
-  if(!o) return;
-  o[stage] = !o[stage];
+  // Search across all months
+  let found = false;
+  for(const month of Object.keys(store)) {
+    const o = store[month].find(x => x.id === id);
+    if(o) {
+      const newVal = !o[stage];
+      o[stage] = newVal;
+      if(!o.activity) o.activity = [];
+      o.activity.push({
+        ts: Date.now(),
+        user: currentUser ? currentUser.name : 'Unknown',
+        action: 'stage',
+        detail: `Stage "${stage}" marked as ${newVal ? 'done' : 'undone'}`
+      });
+      found = true;
+      break;
+    }
+  }
+  if(!found) return;
   save();
+  applyDateRange();
   renderAll();
   if(currentView === 'dashboard') renderDashboard();
 }
 
 function deleteOrder(id) {
   if(!confirm('Delete this order?')) return;
-  store[activeMonth] = store[activeMonth].filter(x=>x.id!==id);
+  for(const month of Object.keys(store)) {
+    store[month] = store[month].filter(x=>x.id!==id);
+  }
   save();
+  applyDateRange();
   renderAll();
 }
 
@@ -1702,7 +2057,7 @@ function handleImport(evt) {
       }
     });
     save();
-    renderTabs();
+    applyDateRange();
     renderAll();
     alert('Import complete!');
   };
@@ -1763,6 +2118,21 @@ function seedMay() {
 // ── View switching ──
 let currentView = 'table';
 const chartInstances = {};
+let chartObserver = null;
+
+function destroyAllCharts() {
+  Object.keys(chartInstances).forEach(id => {
+    if(chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+  });
+  // Reset skeleton/canvas state
+  document.querySelectorAll('[data-chart]').forEach(card => {
+    const chartId = card.getAttribute('data-chart');
+    const skel = document.getElementById('skel' + chartId.charAt(0).toUpperCase() + chartId.slice(1));
+    const canvas = document.getElementById(chartId);
+    if(skel) skel.style.display = '';
+    if(canvas) canvas.style.display = 'none';
+  });
+}
 
 function setView(v) {
   currentView = v;
@@ -1771,7 +2141,37 @@ function setView(v) {
   document.getElementById('rowCount').style.display = v==='table' ? '' : 'none';
   document.getElementById('btnTableView').classList.toggle('active', v==='table');
   document.getElementById('btnDashView').classList.toggle('active', v==='dashboard');
-  if(v==='dashboard') renderDashboard();
+  if(v==='dashboard') {
+    renderDashboard();
+    setupChartObserver();
+  } else {
+    // Destroy charts to free memory when leaving dashboard
+    destroyAllCharts();
+    if(chartObserver) { chartObserver.disconnect(); chartObserver = null; }
+  }
+}
+
+function setupChartObserver() {
+  if(chartObserver) chartObserver.disconnect();
+  chartObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(!entry.isIntersecting) return;
+      const card = entry.target;
+      const chartId = card.getAttribute('data-chart');
+      if(!chartId) return;
+      const canvas = document.getElementById(chartId);
+      const skelId = 'skel' + chartId.charAt(0).toUpperCase() + chartId.slice(1);
+      const skel = document.getElementById(skelId);
+      if(canvas && canvas.style.display === 'none' && !chartInstances[chartId]) {
+        // Chart not yet rendered — trigger renderDashboard for this chart
+        renderSingleChart(chartId);
+        if(skel) skel.style.display = 'none';
+        canvas.style.display = '';
+      }
+      chartObserver.unobserve(card);
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('[data-chart]').forEach(card => chartObserver.observe(card));
 }
 
 // ── Chart helpers ──
@@ -1793,18 +2193,84 @@ function baseOpts(type) {
 }
 
 function makeChart(id, type, labels, datasets, extraOpts={}) {
-  if(chartInstances[id]) chartInstances[id].destroy();
-  const ctx = document.getElementById(id).getContext('2d');
+  if(chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  // Show canvas, hide skeleton
+  const skelId = 'skel' + id.charAt(0).toUpperCase() + id.slice(1);
+  const skel = document.getElementById(skelId);
+  if(skel) skel.style.display = 'none';
+  canvas.style.display = '';
+  const ctx = canvas.getContext('2d');
   chartInstances[id] = new Chart(ctx, {
     type, data:{labels, datasets},
     options: {...baseOpts(type), ...extraOpts}
   });
 }
 
+// Render a single chart by id (called by IntersectionObserver)
+function renderSingleChart(chartId) {
+  const dashHub = (document.getElementById('dashFilterHub')||{}).value || '';
+  const all = orders()
+    .filter(o => !dashHub || (o.hub||'') === dashHub)
+    .map(o=>({...o, _status:calcStatus(o), _progress:calcProgress(o), _city:extractCity(o.order||'',o.city||'')}));
+  const total = all.length;
+  if(chartId === 'chartStatus') {
+    const statuses = ['Completed','In Progress','Pending'];
+    const statusCounts = statuses.map(s=>all.filter(o=>o._status===s).length);
+    makeChart('chartStatus','doughnut', statuses, [{ data: statusCounts, backgroundColor:['#4A9B3A','#1B3A6B','#e67e22'], borderColor: '#ffffff', borderWidth: 3 }], { plugins:{ legend:{position:'bottom', labels:{color:'#1a2a42'}} }, cutout:'65%' });
+  } else if(chartId === 'chartShipType') {
+    const shipTypes = ['URGENT','SCHEDULED','NORMAL'];
+    const shipCounts = shipTypes.map(t=>all.filter(o=>o.shipType===t).length);
+    makeChart('chartShipType','doughnut', shipTypes, [{ data: shipCounts, backgroundColor:['#d93025','#d4a017','#4A9B3A'], borderColor:'#ffffff', borderWidth:3 }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
+  } else if(chartId === 'chartHub') {
+    const hubMap = {}; all.forEach(o=>{ const h=o.hub||'(No Hub)'; hubMap[h]=(hubMap[h]||0)+1; });
+    const hubSorted = Object.entries(hubMap).sort((a,b)=>b[1]-a[1]);
+    makeChart('chartHub','bar', hubSorted.map(x=>x[0]), [{ label:'Orders', data:hubSorted.map(x=>x[1]), backgroundColor: hubSorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius:6, borderSkipped:false }], { plugins:{legend:{display:false}}, indexAxis:'y' });
+  } else if(chartId === 'chartCity') {
+    const cityMap = {}; all.forEach(o=>{ cityMap[o._city]=(cityMap[o._city]||0)+1; });
+    const citySorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]);
+    makeChart('chartCity','bar', citySorted.map(x=>x[0]), [{ label:'Orders', data:citySorted.map(x=>x[1]), backgroundColor: citySorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius:6, borderSkipped:false }], { plugins:{legend:{display:false}}, indexAxis:'y' });
+  } else if(chartId === 'chartLogistics') {
+    const logMap = {}; all.forEach(o=>{ const l=o.logistics||'Others'; logMap[l]=(logMap[l]||0)+1; });
+    const logKeys = Object.keys(logMap);
+    makeChart('chartLogistics','doughnut', logKeys, [{ data: logKeys.map(k=>logMap[k]), backgroundColor:['#4f8ef7','#f59e0b','#22c55e','#7c5cfc'], borderColor:'#1a1d27', borderWidth:3 }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
+  } else if(chartId === 'chartTimeline') {
+    const dayMap = {}; all.forEach(o=>{ if(!o.date) return; const d=o.date.slice(0,10); if(!dayMap[d]) dayMap[d]={total:0,completed:0,urgent:0}; dayMap[d].total++; if(o._status==='Completed') dayMap[d].completed++; if(o.shipType==='URGENT') dayMap[d].urgent++; });
+    const days = Object.keys(dayMap).sort();
+    makeChart('chartTimeline','line', days.map(d=>fmtDate(d)), [
+      { label:'Total Orders', data:days.map(d=>dayMap[d].total), borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,.15)', fill:true, tension:.35, pointRadius:4 },
+      { label:'Completed', data:days.map(d=>dayMap[d].completed), borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.1)', fill:true, tension:.35, pointRadius:4 },
+      { label:'Urgent', data:days.map(d=>dayMap[d].urgent), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.1)', fill:false, tension:.35, pointRadius:4, borderDash:[4,3] },
+    ], { plugins:{legend:{position:'top',labels:{color:'#1a2a42'}}} });
+  } else if(chartId === 'chartOnTime') {
+    const delayedCnt = all.filter(o=>o.delayReason&&o.delayReason.trim()).length;
+    makeChart('chartOnTime','bar', ['On Time','Before Time','Delayed','No Data'], [{ data:[ all.filter(o=>o.onTime==='true'||o.onTime===true).length, all.filter(o=>o.beforeTime==='true'||o.beforeTime===true).length, delayedCnt, all.filter(o=>o.dispatched&&!o.onTime&&!o.beforeTime).length ], backgroundColor:['#22c55e','#4f8ef7','#ef4444','#64748b'], borderRadius:6, borderSkipped:false }], { plugins:{legend:{display:false}} });
+  } else if(chartId === 'chartDelayReasons') {
+    const dmap = {}; all.forEach(o=>{ if(o.delayReason&&o.delayReason.trim()) { const k=o.delayReason.trim(); dmap[k]=(dmap[k]||0)+1; } });
+    const dkeys = Object.keys(dmap);
+    if(dkeys.length) {
+      makeChart('chartDelayReasons','bar', dkeys, [{ label:'Count', data:dkeys.map(k=>dmap[k]), backgroundColor:CHART_COLORS, borderRadius:6, borderSkipped:false }], { plugins:{legend:{display:false}} });
+    } else {
+      const canvas = document.getElementById('chartDelayReasons');
+      if(canvas) {
+        canvas.style.display = '';
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle='#6b7d99'; ctx.font='14px Inter,Segoe UI,sans-serif'; ctx.textAlign='center';
+        ctx.fillText('No delays recorded', ctx.canvas.width/2, ctx.canvas.height/2);
+      }
+      const skel = document.getElementById('skelChartDelayReasons');
+      if(skel) skel.style.display = 'none';
+    }
+  }
+}
+
 // ── Dashboard render ──
 function renderDashboard() {
   populateHubDropdowns();
   const dashHub = (document.getElementById('dashFilterHub')||{}).value || '';
+  const rangeFrom = document.getElementById('rangeFrom') ? document.getElementById('rangeFrom').value : '';
+  const rangeTo = document.getElementById('rangeTo') ? document.getElementById('rangeTo').value : '';
   const all = orders()
     .filter(o => !dashHub || (o.hub||'') === dashHub)
     .map(o=>({...o, _status:calcStatus(o), _progress:calcProgress(o), _city:extractCity(o.order||'',o.city||'')}));
@@ -1814,105 +2280,15 @@ function renderDashboard() {
   const onTimeCnt = all.filter(o=>o.onTime==='true'||o.onTime===true).length;
   const delayedCnt = all.filter(o=>o.delayReason&&o.delayReason.trim()).length;
   const onTimePct = dispatched ? (onTimeCnt/dispatched*100).toFixed(1) : 0;
+  const rangeLabel = rangeFrom && rangeTo ? `${fmtDate(rangeFrom)} – ${fmtDate(rangeTo)}` : (rangeFrom ? `From ${fmtDate(rangeFrom)}` : 'All dates');
 
   // ── Stat boxes ──
   document.getElementById('dashStatRow').innerHTML = `
-    <div class="stat-box blue"><div class="s-label">Total Orders</div><div class="s-val">${total}</div><div class="s-sub">${dashHub ? dashHub + ' · ' : ''}${activeMonth}</div></div>
+    <div class="stat-box blue"><div class="s-label">Total Orders</div><div class="s-val">${total}</div><div class="s-sub">${dashHub ? dashHub + ' · ' : ''}${rangeLabel}</div></div>
     <div class="stat-box green"><div class="s-label">Completed</div><div class="s-val">${completed}</div><div class="s-sub">${total?(completed/total*100).toFixed(0):0}% of total</div></div>
     <div class="stat-box yellow"><div class="s-label">On-Time Rate</div><div class="s-val">${onTimePct}%</div><div class="s-sub">${onTimeCnt} of ${dispatched} dispatched</div></div>
     <div class="stat-box red"><div class="s-label">Delayed</div><div class="s-val">${delayedCnt}</div><div class="s-sub">${dispatched?(delayedCnt/dispatched*100).toFixed(1):0}% delay rate</div></div>
   `;
-
-  // ── Status donut ──
-  const statuses = ['Completed','In Progress','Pending'];
-  const statusCounts = statuses.map(s=>all.filter(o=>o._status===s).length);
-  makeChart('chartStatus','doughnut', statuses, [{
-    data: statusCounts, backgroundColor:['#4A9B3A','#1B3A6B','#e67e22'],
-    borderColor: '#ffffff', borderWidth: 3
-  }], { plugins:{ legend:{position:'bottom', labels:{color:'#1a2a42'}} }, cutout:'65%' });
-
-  // ── Shipment type donut ──
-  const shipTypes = ['URGENT','SCHEDULED','NORMAL'];
-  const shipCounts = shipTypes.map(t=>all.filter(o=>o.shipType===t).length);
-  makeChart('chartShipType','doughnut', shipTypes, [{
-    data: shipCounts, backgroundColor:['#d93025','#d4a017','#4A9B3A'],
-    borderColor:'#ffffff', borderWidth:3
-  }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
-
-  // ── Orders by hub bar ──
-  const hubMap = {};
-  all.forEach(o=>{ const h=o.hub||'(No Hub)'; hubMap[h]=(hubMap[h]||0)+1; });
-  const hubSorted = Object.entries(hubMap).sort((a,b)=>b[1]-a[1]);
-  makeChart('chartHub','bar', hubSorted.map(x=>x[0]), [{
-    label:'Orders', data:hubSorted.map(x=>x[1]),
-    backgroundColor: hubSorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
-    borderRadius:6, borderSkipped:false
-  }], { plugins:{legend:{display:false}}, indexAxis:'y' });
-
-  // ── Orders by city bar ──
-  const cityMap = {};
-  all.forEach(o=>{ cityMap[o._city]=(cityMap[o._city]||0)+1; });
-  const citySorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]);
-  makeChart('chartCity','bar', citySorted.map(x=>x[0]), [{
-    label:'Orders', data:citySorted.map(x=>x[1]),
-    backgroundColor: citySorted.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
-    borderRadius:6, borderSkipped:false
-  }], { plugins:{legend:{display:false}}, indexAxis:'y' });
-
-  // ── Logistics bar ──
-  const logMap = {};
-  all.forEach(o=>{ const l=o.logistics||'Others'; logMap[l]=(logMap[l]||0)+1; });
-  const logKeys = Object.keys(logMap);
-  makeChart('chartLogistics','doughnut', logKeys, [{
-    data: logKeys.map(k=>logMap[k]),
-    backgroundColor:['#4f8ef7','#f59e0b','#22c55e','#7c5cfc'],
-    borderColor:'#1a1d27', borderWidth:3
-  }], { plugins:{legend:{position:'bottom',labels:{color:'#1a2a42'}}}, cutout:'65%' });
-
-  // ── Daily timeline ──
-  const dayMap = {};
-  all.forEach(o=>{
-    if(!o.date) return;
-    const d = o.date.slice(0,10);
-    if(!dayMap[d]) dayMap[d]={total:0,completed:0,urgent:0};
-    dayMap[d].total++;
-    if(o._status==='Completed') dayMap[d].completed++;
-    if(o.shipType==='URGENT') dayMap[d].urgent++;
-  });
-  const days = Object.keys(dayMap).sort();
-  makeChart('chartTimeline','line', days.map(d=>fmtDate(d)), [
-    { label:'Total Orders', data:days.map(d=>dayMap[d].total), borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,.15)', fill:true, tension:.35, pointRadius:4 },
-    { label:'Completed', data:days.map(d=>dayMap[d].completed), borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.1)', fill:true, tension:.35, pointRadius:4 },
-    { label:'Urgent', data:days.map(d=>dayMap[d].urgent), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.1)', fill:false, tension:.35, pointRadius:4, borderDash:[4,3] },
-  ], { plugins:{legend:{position:'top',labels:{color:'#1a2a42'}}} });
-
-  // ── On-time vs delayed bar ──
-  makeChart('chartOnTime','bar', ['On Time','Before Time','Delayed','No Data'], [{
-    data:[
-      all.filter(o=>o.onTime==='true'||o.onTime===true).length,
-      all.filter(o=>o.beforeTime==='true'||o.beforeTime===true).length,
-      delayedCnt,
-      all.filter(o=>o.dispatched&&!o.onTime&&!o.beforeTime).length,
-    ],
-    backgroundColor:['#22c55e','#4f8ef7','#ef4444','#64748b'],
-    borderRadius:6, borderSkipped:false
-  }], { plugins:{legend:{display:false}} });
-
-  // ── Delay reasons ──
-  const dmap = {};
-  all.forEach(o=>{ if(o.delayReason&&o.delayReason.trim()) { const k=o.delayReason.trim(); dmap[k]=(dmap[k]||0)+1; } });
-  const dkeys = Object.keys(dmap);
-  if(dkeys.length) {
-    makeChart('chartDelayReasons','bar', dkeys, [{
-      label:'Count', data:dkeys.map(k=>dmap[k]),
-      backgroundColor:CHART_COLORS, borderRadius:6, borderSkipped:false
-    }], { plugins:{legend:{display:false}} });
-  } else {
-    const ctx = document.getElementById('chartDelayReasons').getContext('2d');
-    if(chartInstances['chartDelayReasons']) chartInstances['chartDelayReasons'].destroy();
-    ctx.fillStyle='#6b7d99'; ctx.font='14px Inter,Segoe UI,sans-serif'; ctx.textAlign='center';
-    ctx.fillText('No delays recorded', ctx.canvas.width/2, ctx.canvas.height/2);
-  }
 
   // ── Activity feed (last 8 orders by date) ──
   const recent = [...all].sort((a,b)=>toDateVal(b.date)-toDateVal(a.date)).slice(0,8);
@@ -1924,10 +2300,26 @@ function renderDashboard() {
       <span class="badge ${o._status==='Completed'?'badge-completed':o._status==='In Progress'?'badge-inprogress':'badge-pending'}" style="font-size:10px">${o._status}</span>
       <span class="feed-time">${fmtDate(o.date)}</span>
     </li>`).join('');
+
+  // Charts are lazy-loaded by IntersectionObserver (setupChartObserver called from setView)
+  // Reset all chart instances so they'll be re-rendered when scrolled into view
+  destroyAllCharts();
+  // Re-setup observer after data update
+  setTimeout(() => setupChartObserver(), 50);
 }
 
 // Close modal on overlay click
 document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+// Escape key closes any open modal
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  ['modalOverlay','manageHubsOverlay','manageLogisticsOverlay','userModalOverlay','changePwdOverlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.classList.contains('open')) el.classList.remove('open');
+  });
+  closeModal();
+});
 
 init();
 </script>
