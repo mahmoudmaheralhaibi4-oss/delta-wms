@@ -1926,7 +1926,7 @@ function podDrop(evt) {
 }
 
 function openLightbox(id) {
-  const o = orders().find(x=>x.id===id);
+  const o = orders().find(x=>x.id===id) || getAllOrdersFlat().find(x=>x.id===id);
   if(!o || !o.podImage) return;
   document.getElementById('lightboxImg').src = o.podImage;
   document.getElementById('lightbox').classList.add('open');
@@ -2080,10 +2080,15 @@ function renderLogisticsView() {
     if(status === '') {
       actionsHtml = `<button class="btn btn-primary" onclick="markPickedUp('${o.id}')">Pick Up Done</button>`;
     } else if(status === 'picked_up') {
-      actionsHtml = `<button class="btn btn-primary" onclick="markDelivered('${o.id}')">Delivery Done</button>`;
+      actionsHtml = `<button class="btn btn-primary" onclick="document.getElementById('deliveryProofInput_${o.id}').click()">Delivery Done</button>
+        <input type="file" id="deliveryProofInput_${o.id}" accept="image/*" capture="environment" style="display:none" onchange="handleDeliveryProof(event,'${o.id}')"/>`;
     } else {
       actionsHtml = `<span style="color:var(--green);font-weight:700;font-size:13px">✓ Completed</span>`;
     }
+
+    const proofHtml = o.podImage
+      ? `<div style="margin-top:8px"><img src="${o.podImage}" alt="Delivery proof" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="openLightbox('${o.id}')"/></div>`
+      : '';
 
     return `<div class="account-card" style="align-items:flex-start;flex-wrap:wrap">
       <div class="account-info" style="min-width:220px">
@@ -2091,10 +2096,19 @@ function renderLogisticsView() {
         <div class="a-user">Hub: ${o.hub || '-'} · City: ${o.city || '-'}</div>
         <div class="a-user">Date: ${o.date || '-'} ${o.shipDate ? '· Ship: '+o.shipDate : ''}</div>
         <div style="margin-top:6px"><span class="role-badge" style="background:${statusColor};color:#fff">${statusLabel}</span></div>
+        ${proofHtml}
       </div>
       <div style="margin-left:auto;display:flex;align-items:center">${actionsHtml}</div>
     </div>`;
   }).join('');
+}
+
+function handleDeliveryProof(evt, id) {
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => markDelivered(id, e.target.result);
+  reader.readAsDataURL(file);
 }
 
 function markPickedUp(id) {
@@ -2113,14 +2127,17 @@ function markPickedUp(id) {
   renderLogisticsView();
 }
 
-function markDelivered(id) {
+function markDelivered(id, proofImage) {
+  if(!proofImage) { alert('Please attach a delivery photo to complete this delivery.'); return; }
   for(const month of Object.keys(store)) {
     const o = store[month].find(x => x.id === id);
     if(o) {
       if(o.deliveryStatus !== 'picked_up') return;
       o.deliveryStatus = 'delivered';
+      o.podImage = proofImage;
+      o.pod = o.pod || 'Photo uploaded by logistics partner';
       if(!o.activity) o.activity = [];
-      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'delivered', detail: 'Marked as Delivered by logistics partner' });
+      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'delivered', detail: 'Marked as Delivered by logistics partner with delivery photo' });
       break;
     }
   }
