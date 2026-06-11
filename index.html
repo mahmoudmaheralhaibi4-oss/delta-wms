@@ -1482,7 +1482,11 @@ function startRealtimeSync() {
       if(JSON.stringify(normalized) !== JSON.stringify(store)) {
         store = normalized;
         localStorage.setItem('wms_data', JSON.stringify(store));
-        renderAll();
+        if(currentUser && currentUser.role === 'logistics') {
+          renderLogisticsView();
+        } else {
+          renderAll();
+        }
         setSyncStatus('↻ Updated from cloud', 'green');
       }
     }
@@ -2053,11 +2057,55 @@ function getAllOrdersFlat() {
   return all;
 }
 
+function playAlertSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const playBeep = (start, freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + 0.32);
+    };
+    playBeep(0, 880);
+    playBeep(0.35, 1175);
+    setTimeout(() => ctx.close(), 1000);
+  } catch(e) { /* ignore audio errors */ }
+}
+
+function getKnownLogisticsIds() {
+  try { return JSON.parse(localStorage.getItem('wms_logistics_known_ids') || 'null'); }
+  catch(e) { return null; }
+}
+function setKnownLogisticsIds(ids) {
+  localStorage.setItem('wms_logistics_known_ids', JSON.stringify(ids));
+}
+
 function renderLogisticsView() {
   const grid = document.getElementById('logisticsOrdersGrid');
   if(!grid || !currentUser) return;
   const provider = currentUser.provider || 'MTC';
   const myOrders = getAllOrdersFlat().filter(o => o.assignedToLogistics && o.logistics === provider);
+
+  // Alert sound: notify when a new shipment is assigned to this logistics partner
+  const pendingIds = myOrders.filter(o => !o.deliveryStatus).map(o => o.id);
+  const knownIds = getKnownLogisticsIds();
+  if(knownIds === null) {
+    // First run on this device: just remember current pending orders, no sound
+    setKnownLogisticsIds(pendingIds);
+  } else {
+    const newIds = pendingIds.filter(id => !knownIds.includes(id));
+    if(newIds.length) playAlertSound();
+    setKnownLogisticsIds(pendingIds);
+  }
+
   if(!myOrders.length) {
     grid.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:20px;text-align:center">No orders assigned to you yet.</div>';
     return;
