@@ -351,8 +351,8 @@
   <span class="sub" style="color:rgba(255,255,255,.6);font-size:13px;font-weight:500;">Delta Medical Laboratories</span>
   <div class="spacer"></div>
   <span id="syncStatus" style="font-size:12px;font-weight:600;min-width:120px;text-align:right"></span>
-  <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="importExcel()">⬆ Import</button>
-  <button class="btn btn-success" onclick="exportExcel()">⬇ Export</button>
+  <button class="btn btn-outline" id="importBtn" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="importExcel()">⬆ Import</button>
+  <button class="btn btn-success" id="exportBtn" onclick="exportExcel()">⬇ Export</button>
   <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="handleImport(event)"/>
   <!-- User chip -->
   <div class="user-chip" id="userChip" onclick="toggleUserMenu()">
@@ -381,6 +381,14 @@
       </div>
     </div>
     <div class="accounts-grid" id="accountsGrid"></div>
+  </div>
+
+  <!-- ── Logistics Partner View (e.g. MTC) ── -->
+  <div id="logisticsView" style="display:none">
+    <div class="accounts-header">
+      <h2>🚚 My Deliveries</h2>
+    </div>
+    <div id="logisticsOrdersGrid" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
 
   <!-- Date Range Bar (replaces month tabs) -->
@@ -515,6 +523,7 @@
           <option value="editor">Editor — can add & edit orders</option>
           <option value="viewer">Viewer — read only</option>
           <option value="admin">Admin — full access</option>
+          <option value="logistics">Logistics — delivery partner view only</option>
         </select>
       </div>
     </div>
@@ -757,6 +766,13 @@
           <option>Others</option>
         </select>
       </div>
+      <div class="form-group" id="assignLogisticsGroup">
+        <label>&nbsp;</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:500;cursor:pointer">
+          <input type="checkbox" id="f_assignedToLogistics" style="width:auto"/>
+          Assign to Logistics Provider
+        </label>
+      </div>
       <div class="form-group full">
         <label>Stages</label>
         <!-- Hidden checkboxes for JS compatibility -->
@@ -973,6 +989,14 @@ async function seedDefaultAdmin() {
   saveUsers([{ id: uid(), name: 'Admin', username: 'admin', pwdHash: hash, role: 'admin' }]);
 }
 
+async function seedLogisticsUser() {
+  const users = getUsers();
+  if(users.find(u => u.username === 'mtc')) return;
+  const hash = await hashPwd('mtc2024');
+  users.push({ id: uid(), name: 'MTC Logistics', username: 'mtc', pwdHash: hash, role: 'logistics', provider: 'MTC' });
+  saveUsers(users);
+}
+
 async function doLogin() {
   const username = document.getElementById('loginUser').value.trim().toLowerCase();
   const password = document.getElementById('loginPass').value;
@@ -988,6 +1012,7 @@ async function doLogin() {
   document.getElementById('loginScreen').classList.remove('show');
   applyUserUI();
   initWMS();
+  if(currentUser.role === 'logistics') showLogisticsView();
   if(firebaseReady) startRealtimeSync();
 }
 
@@ -1016,6 +1041,31 @@ function applyUserUI() {
   // Viewer: hide add/edit/delete
   const editable = currentUser.role !== 'viewer';
   ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
+
+  // Logistics partner: lock down to their own delivery view only
+  const isLogistics = currentUser.role === 'logistics';
+  ['importBtn','exportBtn','importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = isLogistics?'none':(el.style.display); });
+  if(isLogistics) {
+    document.getElementById('manageUsersLink').style.display = 'none';
+    if(mhb) mhb.style.display = 'none';
+    if(mlb) mlb.style.display = 'none';
+  } else {
+    // Restore normal layout in case a previous session left logistics view visible
+    document.getElementById('logisticsView').style.display = 'none';
+    showView('wms');
+  }
+}
+
+function showLogisticsView() {
+  document.getElementById('accountsPanel').style.display = 'none';
+  document.getElementById('dateRangeBar').style.display = 'none';
+  document.getElementById('kpiGrid').style.display = 'none';
+  document.querySelector('.toolbar').style.display = 'none';
+  document.getElementById('dashboardView').style.display = 'none';
+  document.querySelector('.table-wrap').style.display = 'none';
+  document.getElementById('rowCount').style.display = 'none';
+  document.getElementById('logisticsView').style.display = 'block';
+  renderLogisticsView();
 }
 
 function canEdit() {
@@ -1163,6 +1213,7 @@ document.addEventListener('click', e => {
 
 // ── View switching (wms / accounts) ──
 function showView(view) {
+  if(currentUser && currentUser.role === 'logistics') { showLogisticsView(); return; }
   document.getElementById('accountsPanel').style.display = view === 'accounts' ? 'block' : 'none';
   const wmsVisible = view === 'wms';
   document.getElementById('dateRangeBar').style.display = wmsVisible ? '' : 'none';
@@ -1318,6 +1369,7 @@ async function init() {
 
   bar.style.width = '85%';
   await seedDefaultAdmin();
+  await seedLogisticsUser();
   bar.style.width = '100%';
 
   // Hide loading screen
@@ -1335,6 +1387,7 @@ async function init() {
         document.getElementById('loginScreen').classList.remove('show');
         applyUserUI();
         initWMS();
+        if(currentUser.role === 'logistics') showLogisticsView();
         if(firebaseReady) startRealtimeSync();
         return;
       }
@@ -1777,6 +1830,7 @@ function openEditModal(id) {
   document.getElementById('f_shipDate').value = o.shipDate||'';
   document.getElementById('f_shipType').value = o.shipType||'NORMAL';
   document.getElementById('f_logistics').value = o.logistics||'MTC';
+  document.getElementById('f_assignedToLogistics').checked = !!o.assignedToLogistics;
   document.getElementById('f_pending').checked = !!o.pending;
   document.getElementById('f_preparing').checked = !!o.preparing;
   document.getElementById('f_ready').checked = !!o.ready;
@@ -1826,6 +1880,7 @@ function clearForm() {
   ['f_hub','f_city','f_errorType','f_onTime','f_beforeTime'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f_shipType').value='NORMAL';
   document.getElementById('f_logistics').value='MTC';
+  document.getElementById('f_assignedToLogistics').checked = false;
   document.getElementById('f_onTime').value='';
   document.getElementById('f_beforeTime').value='';
   ['f_pending','f_preparing','f_ready','f_dispatched'].forEach(id=>document.getElementById(id).checked=false);
@@ -1895,6 +1950,8 @@ function saveOrder() {
     shipDate: document.getElementById('f_shipDate').value,
     shipType: document.getElementById('f_shipType').value,
     logistics: document.getElementById('f_logistics').value,
+    assignedToLogistics: document.getElementById('f_assignedToLogistics').checked,
+    deliveryStatus: '',
     pending: document.getElementById('f_pending').checked,
     preparing: document.getElementById('f_preparing').checked,
     ready: document.getElementById('f_ready').checked,
@@ -1922,9 +1979,11 @@ function saveOrder() {
       const idx = store[month].findIndex(x => x.id === editingId);
       if(idx >= 0) {
         const old = store[month][idx];
+        // Preserve delivery status set by logistics partner; only reset if assignment removed
+        o.deliveryStatus = o.assignedToLogistics ? (old.deliveryStatus || '') : '';
         // Compute changed fields
         const changed = [];
-        ['order','hub','city','date','shipDate','shipType','logistics','pending','preparing','ready','dispatched','onTime','beforeTime','delayReason','errorType','pod','notes'].forEach(f => {
+        ['order','hub','city','date','shipDate','shipType','logistics','assignedToLogistics','pending','preparing','ready','dispatched','onTime','beforeTime','delayReason','errorType','pod','notes'].forEach(f => {
           if(String(old[f]||'') !== String(o[f]||'')) changed.push(f);
         });
         o.activity = [...(old.activity || [])];
@@ -1985,6 +2044,88 @@ function toggleStage(id, stage) {
   applyDateRange();
   renderAll();
   if(currentView === 'dashboard') renderDashboard();
+}
+
+// ── Logistics Partner View ──
+function getAllOrdersFlat() {
+  let all = [];
+  for(const month of Object.keys(store)) all = all.concat(store[month]);
+  return all;
+}
+
+function renderLogisticsView() {
+  const grid = document.getElementById('logisticsOrdersGrid');
+  if(!grid || !currentUser) return;
+  const provider = currentUser.provider || 'MTC';
+  const myOrders = getAllOrdersFlat().filter(o => o.assignedToLogistics && o.logistics === provider);
+  if(!myOrders.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:20px;text-align:center">No orders assigned to you yet.</div>';
+    return;
+  }
+  // Sort: not yet delivered first, then by date desc
+  myOrders.sort((a,b) => {
+    const aDone = a.deliveryStatus === 'delivered' ? 1 : 0;
+    const bDone = b.deliveryStatus === 'delivered' ? 1 : 0;
+    if(aDone !== bDone) return aDone - bDone;
+    return (b.date||'').localeCompare(a.date||'');
+  });
+  grid.innerHTML = myOrders.map(o => {
+    const status = o.deliveryStatus || '';
+    let statusLabel, statusColor;
+    if(status === 'delivered') { statusLabel = 'Delivered'; statusColor = 'var(--green)'; }
+    else if(status === 'picked_up') { statusLabel = 'Picked Up'; statusColor = 'var(--accent, #2563eb)'; }
+    else { statusLabel = 'Awaiting Pickup'; statusColor = 'var(--muted)'; }
+
+    let actionsHtml = '';
+    if(status === '') {
+      actionsHtml = `<button class="btn btn-primary" onclick="markPickedUp('${o.id}')">Pick Up Done</button>`;
+    } else if(status === 'picked_up') {
+      actionsHtml = `<button class="btn btn-primary" onclick="markDelivered('${o.id}')">Delivery Done</button>`;
+    } else {
+      actionsHtml = `<span style="color:var(--green);font-weight:700;font-size:13px">✓ Completed</span>`;
+    }
+
+    return `<div class="account-card" style="align-items:flex-start;flex-wrap:wrap">
+      <div class="account-info" style="min-width:220px">
+        <div class="a-name">${o.order || '(no order #)'}</div>
+        <div class="a-user">Hub: ${o.hub || '-'} · City: ${o.city || '-'}</div>
+        <div class="a-user">Date: ${o.date || '-'} ${o.shipDate ? '· Ship: '+o.shipDate : ''}</div>
+        <div style="margin-top:6px"><span class="role-badge" style="background:${statusColor};color:#fff">${statusLabel}</span></div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center">${actionsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function markPickedUp(id) {
+  for(const month of Object.keys(store)) {
+    const o = store[month].find(x => x.id === id);
+    if(o) {
+      if(o.deliveryStatus) return; // already progressed
+      o.deliveryStatus = 'picked_up';
+      o.dispatched = true;
+      if(!o.activity) o.activity = [];
+      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'pickup', detail: 'Marked as Picked Up by logistics partner' });
+      break;
+    }
+  }
+  save();
+  renderLogisticsView();
+}
+
+function markDelivered(id) {
+  for(const month of Object.keys(store)) {
+    const o = store[month].find(x => x.id === id);
+    if(o) {
+      if(o.deliveryStatus !== 'picked_up') return;
+      o.deliveryStatus = 'delivered';
+      if(!o.activity) o.activity = [];
+      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'delivered', detail: 'Marked as Delivered by logistics partner' });
+      break;
+    }
+  }
+  save();
+  renderLogisticsView();
 }
 
 function deleteOrder(id) {
@@ -2135,6 +2276,7 @@ function destroyAllCharts() {
 }
 
 function setView(v) {
+  if(currentUser && currentUser.role === 'logistics') { showLogisticsView(); return; }
   currentView = v;
   document.getElementById('dashboardView').style.display = v==='dashboard' ? 'block' : 'none';
   document.querySelector('.table-wrap').style.display = v==='table' ? '' : 'none';
