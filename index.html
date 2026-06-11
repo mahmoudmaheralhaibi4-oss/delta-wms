@@ -1349,7 +1349,7 @@ async function init() {
     ]);
     bar.style.width = '70%';
 
-    if(fbData)  { store = normalizeStore(fbData); localStorage.setItem('wms_data',  JSON.stringify(store)); }
+    if(fbData)  { store = normalizeStore(fbData); localStorage.setItem('wms_data',  JSON.stringify(store)); lastSyncedStoreJSON = JSON.stringify(store); }
     if(fbUsers) {
       const arr = Array.isArray(fbUsers) ? fbUsers : Object.values(fbUsers);
       localStorage.setItem('wms_users', JSON.stringify(arr));
@@ -1446,10 +1446,14 @@ function initWMS() {
 
 async function save() {
   store = normalizeStore(store);
-  localStorage.setItem('wms_data', JSON.stringify(store));
+  const json = JSON.stringify(store);
+  localStorage.setItem('wms_data', json);
   if(firebaseReady) {
+    pendingSave = true;
     setSyncStatus('↑ Saving…', 'blue');
     const ok = await fbWrite('/wms_data', store);
+    pendingSave = false;
+    if(ok) lastSyncedStoreJSON = json;
     setSyncStatus(ok ? '✓ Synced' : '⚠ Sync failed — check Firebase rules', ok ? 'green' : 'red');
   }
 }
@@ -1469,19 +1473,44 @@ function setSyncStatus(msg, color) {
   if(color !== 'blue') el._t = setTimeout(() => { el.textContent = ''; }, 5000);
 }
 
+let pendingSave = false;
+let lastSyncedStoreJSON = null;
+
 function startRealtimeSync() {
   // Poll Firebase every 15 seconds for changes from other devices
   setInterval(async () => {
-    if(!firebaseReady || !currentUser) return;
+    if(!firebaseReady || !currentUser || pendingSave) return;
+
+    const localJSON = JSON.stringify(store);
+    const hasUnsyncedChanges = lastSyncedStoreJSON !== null && localJSON !== lastSyncedStoreJSON;
+    if(hasUnsyncedChanges) {
+      // A previous save() failed (e.g. network issue) — retry pushing local
+      // changes instead of pulling from the cloud, so local edits (like a
+      // delivery just marked complete) are never silently overwritten/reverted.
+      pendingSave = true;
+      setSyncStatus('↑ Retrying save…', 'blue');
+      const ok = await fbWrite('/wms_data', store);
+      pendingSave = false;
+      if(ok) {
+        lastSyncedStoreJSON = localJSON;
+        setSyncStatus('✓ Synced', 'green');
+      } else {
+        setSyncStatus('⚠ Sync failed — check Firebase rules', 'red');
+      }
+      return;
+    }
+
     const [fbData, fbUsers] = await Promise.all([
       fbRead('/wms_data'),
       fbRead('/wms_users')
     ]);
     if(fbData) {
       const normalized = normalizeStore(fbData);
-      if(JSON.stringify(normalized) !== JSON.stringify(store)) {
+      const normalizedJSON = JSON.stringify(normalized);
+      if(normalizedJSON !== localJSON) {
         store = normalized;
-        localStorage.setItem('wms_data', JSON.stringify(store));
+        localStorage.setItem('wms_data', normalizedJSON);
+        lastSyncedStoreJSON = normalizedJSON;
         if(currentUser && currentUser.role === 'logistics') {
           renderLogisticsView();
         } else {
