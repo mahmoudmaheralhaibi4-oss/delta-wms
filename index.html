@@ -441,7 +441,7 @@
       <option value="shipDate-desc">Sort: Shipment Date ↓</option>
       <option value="progress-desc">Sort: Progress ↓</option>
     </select>
-    <button class="btn btn-primary" onclick="openAddModal()">+ New Order</button>
+    <button class="btn btn-primary" id="newOrderBtn" onclick="openAddModal()">+ New Order</button>
     <div class="view-toggle" style="margin-left:auto">
       <button class="view-btn active" id="btnTableView" onclick="setView('table')">☰ Table</button>
       <button class="view-btn" id="btnDashView" onclick="setView('dashboard')">📊 Dashboard</button>
@@ -1049,6 +1049,8 @@ function applyUserUI() {
   // Viewer: hide add/edit/delete
   const editable = currentUser.role !== 'viewer';
   ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
+  const newOrderBtn = document.getElementById('newOrderBtn');
+  if(newOrderBtn) newOrderBtn.style.display = editable?'':'none';
 
   // Logistics partner: lock down to their own delivery view only
   const isLogistics = currentUser.role === 'logistics';
@@ -1493,8 +1495,11 @@ function setSyncStatus(msg, color) {
 
 let pendingSave = false;
 let lastSyncedStoreJSON = null;
+let syncIntervalStarted = false;
 
 function startRealtimeSync() {
+  if(syncIntervalStarted) return;
+  syncIntervalStarted = true;
   // Poll Firebase every 15 seconds for changes from other devices
   setInterval(async () => {
     if(!firebaseReady || !currentUser || pendingSave) return;
@@ -1750,6 +1755,7 @@ function refreshCityFilter() {
 function renderTable() {
   refreshCityFilter();
   const rows = filteredSorted();
+  const editable = canEdit();
   document.getElementById('rowCount').textContent = `Showing ${rows.length} of ${orders().length} orders`;
 
   const stages = ['pending','preparing','ready','dispatched'];
@@ -1766,11 +1772,11 @@ function renderTable() {
     const currentStageName = lastDoneIdx >= 0 ? stageLabels[lastDoneIdx] : 'None';
     const nextStageIdx = lastDoneIdx < stages.length - 1 ? lastDoneIdx + 1 : -1;
     const stageDots = `<div class="stages" style="gap:6px">
-      <button class="stage-btn ${lastDoneIdx>=0?'done':''}" onclick="toggleStage('${o.id}','${lastDoneIdx>=0?stages[lastDoneIdx]:stages[0]}')" title="Current: ${currentStageName}. Click to toggle">
+      <button class="stage-btn ${lastDoneIdx>=0?'done':''}" ${editable?`onclick="toggleStage('${o.id}','${lastDoneIdx>=0?stages[lastDoneIdx]:stages[0]}')"`:'disabled'} title="Current: ${currentStageName}${editable?'. Click to toggle':''}">
         <span class="dot"></span>${currentStageName}
       </button>
       <span style="font-size:11px;color:var(--muted);white-space:nowrap">${doneCount}/4</span>
-      ${nextStageIdx>=0 ? `<button class="stage-btn" onclick="toggleStage('${o.id}','${stages[nextStageIdx]}')" title="Advance to ${stageLabels[nextStageIdx]}" style="border-style:dashed;font-size:10px">→${stageLabels[nextStageIdx]}</button>` : ''}
+      ${nextStageIdx>=0 && editable ? `<button class="stage-btn" onclick="toggleStage('${o.id}','${stages[nextStageIdx]}')" title="Advance to ${stageLabels[nextStageIdx]}" style="border-style:dashed;font-size:10px">→${stageLabels[nextStageIdx]}</button>` : ''}
     </div>`;
     const podHtml = o.podImage
       ? `<img class="pod-thumb" src="${o.podImage}" alt="POD" onclick="openLightbox('${o.id}')" title="Click to view"/>`
@@ -1798,8 +1804,8 @@ function renderTable() {
       <td>${podHtml}</td>
       <td style="color:var(--muted);font-size:12px">${o.delayReason||'—'}</td>
       <td>
-        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="openEditModal('${o.id}')">Edit</button>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="deleteOrder('${o.id}')">Del</button>
+        ${editable ? `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="openEditModal('${o.id}')">Edit</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="deleteOrder('${o.id}')">Del</button>` : `<span style="color:var(--muted);font-size:12px">View only</span>`}
       </td>
     </tr>`;
   }).join('');
@@ -1985,6 +1991,7 @@ function openLightbox(id) {
 function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
 
 function saveOrder() {
+  if(!canEdit()) { closeModal(); return; }
   const dateVal = document.getElementById('f_date').value;
   const targetMonth = monthFromDate(dateVal) || activeMonth;
   const isNew = !editingId;
@@ -2072,6 +2079,7 @@ function saveOrder() {
 }
 
 function toggleStage(id, stage) {
+  if(!canEdit()) return;
   // Search across all months
   let found = false;
   for(const month of Object.keys(store)) {
@@ -2241,6 +2249,7 @@ function markDelivered(id, proofImage) {
 }
 
 function deleteOrder(id) {
+  if(!canEdit()) return;
   if(!confirm('Delete this order?')) return;
   for(const month of Object.keys(store)) {
     store[month] = store[month].filter(x=>x.id!==id);
