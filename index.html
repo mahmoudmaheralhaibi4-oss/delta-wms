@@ -911,6 +911,14 @@
 const FB = 'https://delta-wms-default-rtdb.firebaseio.com';
 let firebaseReady = false;
 
+// localStorage has a small quota (~5MB) and `store` can grow large once
+// delivery photos (base64) are attached. Writing the local cache is a
+// best-effort convenience — it must never block Firebase sync or app init.
+function safeSetLocalStorage(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch(e) { console.warn('localStorage quota exceeded for', key, e); return false; }
+}
+
 async function fbRead(path) {
   try {
     const res = await fetch(`${FB}${path}.json`);
@@ -1044,7 +1052,12 @@ function applyUserUI() {
 
   // Logistics partner: lock down to their own delivery view only
   const isLogistics = currentUser.role === 'logistics';
-  ['importBtn','exportBtn','importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = isLogistics?'none':(el.style.display); });
+  ['importBtn','exportBtn','importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = isLogistics?'none':''; });
+  if(!isLogistics) {
+    // Re-apply viewer restriction for importFile, since the line above resets it to visible
+    const importFileEl = document.getElementById('importFile');
+    if(importFileEl) importFileEl.style.display = editable ? '' : 'none';
+  }
   if(isLogistics) {
     document.getElementById('manageUsersLink').style.display = 'none';
     if(mhb) mhb.style.display = 'none';
@@ -1349,18 +1362,23 @@ async function init() {
     ]);
     bar.style.width = '70%';
 
-    if(fbData)  { store = normalizeStore(fbData); localStorage.setItem('wms_data',  JSON.stringify(store)); lastSyncedStoreJSON = JSON.stringify(store); }
+    if(fbData)  {
+      store = normalizeStore(fbData);
+      const json = JSON.stringify(store);
+      safeSetLocalStorage('wms_data', json);
+      lastSyncedStoreJSON = json;
+    }
     if(fbUsers) {
       const arr = Array.isArray(fbUsers) ? fbUsers : Object.values(fbUsers);
-      localStorage.setItem('wms_users', JSON.stringify(arr));
+      safeSetLocalStorage('wms_users', JSON.stringify(arr));
     }
     if(fbHubs) {
       customHubs = Array.isArray(fbHubs) ? fbHubs : Object.values(fbHubs);
-      localStorage.setItem('wms_hubs', JSON.stringify(customHubs));
+      safeSetLocalStorage('wms_hubs', JSON.stringify(customHubs));
     }
     if(fbLogistics) {
       customLogistics = Array.isArray(fbLogistics) ? fbLogistics : Object.values(fbLogistics);
-      localStorage.setItem('wms_logistics', JSON.stringify(customLogistics));
+      safeSetLocalStorage('wms_logistics', JSON.stringify(customLogistics));
     }
     firebaseReady = true;
   } catch(e) {
@@ -1447,7 +1465,7 @@ function initWMS() {
 async function save() {
   store = normalizeStore(store);
   const json = JSON.stringify(store);
-  localStorage.setItem('wms_data', json);
+  safeSetLocalStorage('wms_data', json);
   if(firebaseReady) {
     pendingSave = true;
     setSyncStatus('↑ Saving…', 'blue');
@@ -1459,7 +1477,7 @@ async function save() {
 }
 
 async function saveUsers(users) {
-  localStorage.setItem('wms_users', JSON.stringify(users));
+  safeSetLocalStorage('wms_users', JSON.stringify(users));
   if(firebaseReady) await fbWrite('/wms_users', users);
 }
 
@@ -1509,7 +1527,7 @@ function startRealtimeSync() {
       const normalizedJSON = JSON.stringify(normalized);
       if(normalizedJSON !== localJSON) {
         store = normalized;
-        localStorage.setItem('wms_data', normalizedJSON);
+        safeSetLocalStorage('wms_data', normalizedJSON);
         lastSyncedStoreJSON = normalizedJSON;
         if(currentUser && currentUser.role === 'logistics') {
           renderLogisticsView();
