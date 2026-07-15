@@ -173,6 +173,22 @@
   .step.active .step-label { color: var(--green); }
   .pod-hint { display: none; margin-top: 8px; font-size: 12px; color: var(--green2); font-weight: 600; }
 
+  /* ── Required fields & validation ── */
+  .req-star { color: var(--red); font-weight: 700; }
+  .modal-error { background: #fff5f5; border: 1.5px solid #f0a0a0; color: var(--red); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; font-weight: 600; }
+  .field-invalid select, .field-invalid input, select.field-invalid, input.field-invalid { border-color: var(--red) !important; background: #fff8f8; }
+
+  /* ── Fulfillment (after-dispatch) section ── */
+  #fulfillmentSection { border-top: 1.5px dashed var(--border); padding-top: 14px; margin-top: 4px; }
+  .fulfillment-head { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--navy); margin-bottom: 10px; }
+  .fulfillment-head span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .fulfillment-grid { margin-top: 0; }
+
+  /* ── Row advance button ── */
+  .btn-advance { padding: 4px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; border: none; background: var(--navy); color: #fff; cursor: pointer; white-space: nowrap; transition: filter .15s; }
+  .btn-advance:hover { filter: brightness(1.15); }
+  .stage-complete { font-size: 11px; font-weight: 700; color: var(--green2); white-space: nowrap; }
+
   /* ── Chart skeleton ── */
   .chart-skeleton { height: 240px; border-radius: 8px; background: linear-gradient(90deg, #e8edf6 25%, #f0f4f8 50%, #e8edf6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
   .chart-skeleton.tall { height: 300px; }
@@ -388,6 +404,13 @@
     <div class="accounts-header">
       <h2>🚚 My Deliveries</h2>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <span class="dr-label">Filter by date:</span>
+      <input type="date" id="logisticsDateFrom" onchange="renderLogisticsView()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:13px"/>
+      <span class="dr-label">to</span>
+      <input type="date" id="logisticsDateTo" onchange="renderLogisticsView()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);font-size:13px"/>
+      <button class="btn-range" onclick="document.getElementById('logisticsDateFrom').value='';document.getElementById('logisticsDateTo').value='';renderLogisticsView()">Clear</button>
+    </div>
     <div id="logisticsOrdersGrid" style="display:flex;flex-direction:column;gap:12px"></div>
   </div>
 
@@ -441,6 +464,7 @@
       <option value="shipDate-desc">Sort: Shipment Date ↓</option>
       <option value="progress-desc">Sort: Progress ↓</option>
     </select>
+    <button class="btn btn-outline" id="quickAddBtn" onclick="openQuickAdd()">⚡ Quick Add</button>
     <button class="btn btn-primary" id="newOrderBtn" onclick="openAddModal()">+ New Order</button>
     <div class="view-toggle" style="margin-left:auto">
       <button class="view-btn active" id="btnTableView" onclick="setView('table')">☰ Table</button>
@@ -605,19 +629,20 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2 id="modalTitle">New Order</h2>
+    <div id="modalError" class="modal-error" style="display:none"></div>
     <div class="form-grid">
       <div class="form-group full">
-        <label>Order No & Branch</label>
+        <label>Order No & Branch <span class="req-star">*</span></label>
         <input type="text" id="f_order" placeholder="DLTA-000XXX LB001 Laban, Riyadh"/>
       </div>
       <div class="form-group">
-        <label>Hub / Warehouse</label>
+        <label>Hub / Warehouse <span class="req-star">*</span></label>
         <select id="f_hub">
           <option value="">— Select Warehouse —</option>
         </select>
       </div>
       <div class="form-group">
-        <label>City</label>
+        <label>City <span class="req-star">*</span></label>
         <select id="f_city">
           <option value="">— Select City —</option>
           <optgroup label="Riyadh Region">
@@ -800,6 +825,9 @@
         </div>
         <div id="podHint" class="pod-hint">✓ Ready to mark as Completed</div>
       </div>
+      <div class="form-group full" id="fulfillmentSection" style="display:none">
+        <div class="fulfillment-head">Fulfillment details <span>· filled after dispatch</span></div>
+        <div class="form-grid fulfillment-grid">
       <div class="form-group">
         <label>Dispatched On Time</label>
         <select id="f_onTime">
@@ -892,6 +920,8 @@
           <button class="pod-remove-btn" onclick="removePodImage()" title="Remove image">✕</button>
         </div>
       </div>
+        </div>
+      </div>
       <div class="form-group full">
         <label>Notes</label>
         <textarea id="f_notes" placeholder="Any additional notes…"></textarea>
@@ -900,6 +930,41 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Quick Add Modal ── -->
+<div class="modal-overlay" id="quickAddOverlay">
+  <div class="modal" style="max-width:460px">
+    <h2>⚡ Quick Add Order</h2>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Fast entry — date defaults to today, logistics to MTC, stage to Pending.</div>
+    <div id="quickAddError" class="modal-error" style="display:none"></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Order No & Branch <span class="req-star">*</span></label>
+        <input type="text" id="q_order" placeholder="DLTA-000XXX LB001 Laban, Riyadh"/>
+      </div>
+      <div class="form-group">
+        <label>Hub / Warehouse <span class="req-star">*</span></label>
+        <select id="q_hub"><option value="">— Select Warehouse —</option></select>
+      </div>
+      <div class="form-group">
+        <label>City <span class="req-star">*</span></label>
+        <select id="q_city"><option value="">— Select City —</option></select>
+      </div>
+      <div class="form-group full">
+        <label>Shipment Type</label>
+        <select id="q_shipType">
+          <option>URGENT</option>
+          <option>SCHEDULED</option>
+          <option selected>NORMAL</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeQuickAdd()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuickAdd()">Add Order</button>
     </div>
   </div>
 </div>
@@ -943,6 +1008,7 @@ let store = {}; // { "May 2026": [...orders], "Jun 2026": [...] }
 let activeMonth = null; // still used as write-target for new orders
 let filteredOrders = []; // flat array from applyDateRange()
 let editingId = null;
+let fulfillmentForceShow = false; // reveal after-dispatch fields when editing an order that already has them
 let customHubs = []; // extra hubs added by admin beyond WH-001/002/003
 let customLogistics = []; // extra logistics added by admin
 let sortCol = 'date';
@@ -1051,6 +1117,8 @@ function applyUserUI() {
   ['importFile'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display = editable?'':'none'; });
   const newOrderBtn = document.getElementById('newOrderBtn');
   if(newOrderBtn) newOrderBtn.style.display = editable?'':'none';
+  const quickAddBtn = document.getElementById('quickAddBtn');
+  if(quickAddBtn) quickAddBtn.style.display = editable?'':'none';
 
   // Logistics partner: lock down to their own delivery view only
   const isLogistics = currentUser.role === 'logistics';
@@ -1104,6 +1172,10 @@ function populateHubDropdowns() {
   const fhub = document.getElementById('f_hub');
   const fval = fhub ? fhub.value : '';
   if(fhub) fhub.innerHTML = '<option value="">— Select Warehouse —</option>' + hubs.map(h=>`<option value="${h}"${h===fval?' selected':''}>${h}</option>`).join('');
+  // q_hub in quick-add modal
+  const qhub = document.getElementById('q_hub');
+  const qval = qhub ? qhub.value : '';
+  if(qhub) qhub.innerHTML = '<option value="">— Select Warehouse —</option>' + hubs.map(h=>`<option value="${h}"${h===qval?' selected':''}>${h}</option>`).join('');
   // filterHub in table toolbar
   const thub = document.getElementById('filterHub');
   const tval = thub ? thub.value : '';
@@ -1771,12 +1843,15 @@ function renderTable() {
     const lastDoneIdx = stages.reduce((acc, s, si) => o[s] ? si : acc, -1);
     const currentStageName = lastDoneIdx >= 0 ? stageLabels[lastDoneIdx] : 'None';
     const nextStageIdx = lastDoneIdx < stages.length - 1 ? lastDoneIdx + 1 : -1;
-    const stageDots = `<div class="stages" style="gap:6px">
-      <button class="stage-btn ${lastDoneIdx>=0?'done':''}" ${editable?`onclick="toggleStage('${o.id}','${lastDoneIdx>=0?stages[lastDoneIdx]:stages[0]}')"`:'disabled'} title="Current: ${currentStageName}${editable?'. Click to toggle':''}">
+    const advanceHtml = nextStageIdx>=0
+      ? (editable ? `<button class="btn-advance" onclick="toggleStage('${o.id}','${stages[nextStageIdx]}')" title="Move this order to ${stageLabels[nextStageIdx]}">Advance → ${stageLabels[nextStageIdx]}</button>` : '')
+      : `<span class="stage-complete">✓ Completed</span>`;
+    const stageDots = `<div class="stages" style="gap:6px;flex-wrap:wrap">
+      <button class="stage-btn ${lastDoneIdx>=0?'done':''}" ${editable?`onclick="toggleStage('${o.id}','${lastDoneIdx>=0?stages[lastDoneIdx]:stages[0]}')"`:'disabled'} title="Current: ${currentStageName}${editable?'. Click to undo this stage':''}">
         <span class="dot"></span>${currentStageName}
       </button>
       <span style="font-size:11px;color:var(--muted);white-space:nowrap">${doneCount}/4</span>
-      ${nextStageIdx>=0 && editable ? `<button class="stage-btn" onclick="toggleStage('${o.id}','${stages[nextStageIdx]}')" title="Advance to ${stageLabels[nextStageIdx]}" style="border-style:dashed;font-size:10px">→${stageLabels[nextStageIdx]}</button>` : ''}
+      ${advanceHtml}
     </div>`;
     const podHtml = o.podImage
       ? `<img class="pod-thumb" src="${o.podImage}" alt="POD" onclick="openLightbox('${o.id}')" title="Click to view"/>`
@@ -1838,6 +1913,9 @@ function updateStepper() {
   const pod = document.getElementById('f_pod').value.trim();
   const hint = document.getElementById('podHint');
   if(hint) hint.style.display = dispatched && pod ? 'block' : 'none';
+  // Reveal after-dispatch fulfillment fields once dispatched (or when editing an order that already has them)
+  const fs = document.getElementById('fulfillmentSection');
+  if(fs) fs.style.display = (dispatched || fulfillmentForceShow) ? '' : 'none';
 }
 
 function stepperClick(stage) {
@@ -1861,8 +1939,83 @@ function stepperClick(stage) {
   updateStepper();
 }
 
+// ── Validation helpers ──
+function showModalError(elId, msg) {
+  const el = document.getElementById(elId);
+  if(el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function markFieldInvalid(fieldId) {
+  const el = document.getElementById(fieldId);
+  if(el) el.classList.add('field-invalid');
+}
+function clearModalError() {
+  ['modalError','quickAddError'].forEach(id => { const el=document.getElementById(id); if(el){ el.textContent=''; el.style.display='none'; } });
+  document.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+}
+
+// ── Quick Add ──
+function openQuickAdd() {
+  if(!canEdit()) return;
+  clearModalError();
+  populateHubDropdowns();
+  // Clone the big region-grouped city list from the main form into the quick-add select
+  const qcity = document.getElementById('q_city');
+  const fcity = document.getElementById('f_city');
+  if(qcity && fcity) qcity.innerHTML = fcity.innerHTML;
+  document.getElementById('q_order').value = '';
+  document.getElementById('q_city').value = '';
+  document.getElementById('q_shipType').value = 'NORMAL';
+  // Pre-select last-used hub for fast repeat entry
+  const lastHub = localStorage.getItem('wms_lastHub') || '';
+  document.getElementById('q_hub').value = lastHub;
+  document.getElementById('quickAddOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('q_order').focus(), 50);
+}
+function closeQuickAdd() {
+  document.getElementById('quickAddOverlay').classList.remove('open');
+  clearModalError();
+}
+function saveQuickAdd() {
+  if(!canEdit()) { closeQuickAdd(); return; }
+  clearModalError();
+  const order = document.getElementById('q_order').value.trim();
+  const hub = document.getElementById('q_hub').value;
+  const city = document.getElementById('q_city').value;
+  const missing = [];
+  if(!order) { missing.push('Order No & Branch'); markFieldInvalid('q_order'); }
+  if(!hub)   { missing.push('Hub / Warehouse');   markFieldInvalid('q_hub'); }
+  if(!city)  { missing.push('City');              markFieldInvalid('q_city'); }
+  if(missing.length) { showModalError('quickAddError', 'Please fill in: ' + missing.join(', ') + '.'); return; }
+
+  const today = new Date().toISOString().slice(0,10);
+  const now = Date.now();
+  const targetMonth = monthFromDate(today) || activeMonth;
+  const o = {
+    id: uid(), order, hub, city,
+    date: today, shipDate: '',
+    shipType: document.getElementById('q_shipType').value,
+    logistics: 'MTC', assignedToLogistics: false, deliveryStatus: '',
+    pending: true, preparing: false, ready: false, dispatched: false,
+    onTime: '', beforeTime: '', delayReason: '', errorType: '',
+    pod: '', podImage: '', notes: '',
+    activity: [{ ts: now, user: currentUser ? currentUser.name : 'Unknown', action: 'created', detail: 'Order created (quick add)' }],
+  };
+  if(!store[targetMonth]) store[targetMonth] = [];
+  store[targetMonth].push(o);
+  localStorage.setItem('wms_lastHub', hub);
+  activeMonth = targetMonth;
+  save();
+  closeQuickAdd();
+  clearAllFilters();
+  applyDateRange();
+  setView('table');
+  renderAll();
+}
+
 function openAddModal() {
   editingId = null;
+  fulfillmentForceShow = false;
+  clearModalError();
   document.getElementById('modalTitle').textContent = 'New Order';
   clearForm();
   document.getElementById('f_date').value = new Date().toISOString().slice(0,10);
@@ -1879,6 +2032,8 @@ function openEditModal(id) {
   const o = orders().find(x=>x.id===id);
   if(!o) return;
   editingId = id;
+  clearModalError();
+  fulfillmentForceShow = !!(o.dispatched || o.onTime==='true' || o.onTime===true || o.beforeTime==='true' || o.beforeTime===true || o.delayReason || o.errorType || o.pod || o.podImage);
   document.getElementById('modalTitle').textContent = 'Edit Order';
   document.getElementById('f_order').value = o.order||'';
   document.getElementById('f_hub').value = o.hub||'';
@@ -1925,6 +2080,7 @@ function openEditModal(id) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
+  clearModalError();
   editingId = null;
   const auditEl = document.getElementById('orderAuditTrail');
   if(auditEl) auditEl.remove();
@@ -2023,7 +2179,16 @@ function saveOrder() {
     notes: document.getElementById('f_notes').value.trim(),
     activity: [],
   };
-  if(!o.order) { alert('Order No & Branch is required.'); return; }
+  // Required-field validation with inline banner + field highlighting
+  clearModalError();
+  const missing = [];
+  if(!o.order) { missing.push('Order No & Branch'); markFieldInvalid('f_order'); }
+  if(!o.hub)   { missing.push('Hub / Warehouse');   markFieldInvalid('f_hub'); }
+  if(!o.city)  { missing.push('City');              markFieldInvalid('f_city'); }
+  if(missing.length) {
+    showModalError('modalError', 'Please fill in: ' + missing.join(', ') + '.');
+    return;
+  }
 
   if(isNew) {
     o.activity = [{ ts: now, user: userName, action: 'created', detail: 'Order created' }];
@@ -2147,7 +2312,14 @@ function renderLogisticsView() {
   const grid = document.getElementById('logisticsOrdersGrid');
   if(!grid || !currentUser) return;
   const provider = currentUser.provider || 'MTC';
-  const myOrders = getAllOrdersFlat().filter(o => o.assignedToLogistics && o.logistics === provider);
+  const lFrom = (document.getElementById('logisticsDateFrom') || {}).value || '';
+  const lTo   = (document.getElementById('logisticsDateTo')   || {}).value || '';
+  const myOrders = getAllOrdersFlat().filter(o => {
+    if(!o.assignedToLogistics || o.logistics !== provider) return false;
+    if(lFrom && (o.date || '') < lFrom) return false;
+    if(lTo   && (o.date || '') > lTo)   return false;
+    return true;
+  });
 
   // Alert sound: notify when a new shipment is assigned to this logistics partner
   const pendingIds = myOrders.filter(o => !o.deliveryStatus).map(o => o.id);
@@ -2183,8 +2355,11 @@ function renderLogisticsView() {
     if(status === '') {
       actionsHtml = `<button class="btn btn-primary" onclick="markPickedUp('${o.id}')">Pick Up Done</button>`;
     } else if(status === 'picked_up') {
-      actionsHtml = `<button class="btn btn-primary" onclick="document.getElementById('deliveryProofInput_${o.id}').click()">Delivery Done</button>
-        <input type="file" id="deliveryProofInput_${o.id}" accept="image/*" capture="environment" style="display:none" onchange="handleDeliveryProof(event,'${o.id}')"/>`;
+      actionsHtml = `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button class="btn btn-primary" onclick="document.getElementById('deliveryProofInput_${o.id}').click()">📷 Upload Photo & Complete</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px" onclick="markDelivered('${o.id}',null)">Complete Without Photo</button>
+        <input type="file" id="deliveryProofInput_${o.id}" accept="image/*" capture="environment" style="display:none" onchange="handleDeliveryProof(event,'${o.id}')"/>
+      </div>`;
     } else {
       actionsHtml = `<span style="color:var(--green);font-weight:700;font-size:13px">✓ Completed</span>`;
     }
@@ -2231,16 +2406,17 @@ function markPickedUp(id) {
 }
 
 function markDelivered(id, proofImage) {
-  if(!proofImage) { alert('Please attach a delivery photo to complete this delivery.'); return; }
   for(const month of Object.keys(store)) {
     const o = store[month].find(x => x.id === id);
     if(o) {
       if(o.deliveryStatus !== 'picked_up') return;
       o.deliveryStatus = 'delivered';
-      o.podImage = proofImage;
-      o.pod = o.pod || 'Photo uploaded by logistics partner';
+      if(proofImage) {
+        o.podImage = proofImage;
+        o.pod = o.pod || 'Photo uploaded by logistics partner';
+      }
       if(!o.activity) o.activity = [];
-      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'delivered', detail: 'Marked as Delivered by logistics partner with delivery photo' });
+      o.activity.push({ ts: Date.now(), user: currentUser ? currentUser.name : 'Unknown', action: 'delivered', detail: proofImage ? 'Marked as Delivered by logistics partner with delivery photo' : 'Marked as Delivered by logistics partner (no photo)' });
       break;
     }
   }
@@ -2573,11 +2749,12 @@ function renderDashboard() {
 
 // Close modal on overlay click
 document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('quickAddOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeQuickAdd(); });
 
 // Escape key closes any open modal
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['modalOverlay','manageHubsOverlay','manageLogisticsOverlay','userModalOverlay','changePwdOverlay'].forEach(id => {
+  ['modalOverlay','quickAddOverlay','manageHubsOverlay','manageLogisticsOverlay','userModalOverlay','changePwdOverlay'].forEach(id => {
     const el = document.getElementById(id);
     if(el && el.classList.contains('open')) el.classList.remove('open');
   });
